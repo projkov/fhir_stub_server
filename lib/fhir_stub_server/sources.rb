@@ -14,9 +14,7 @@ module FHIRStubServer
     end
 
     def self.read_json(path)
-      JSON.parse(File.read(path))
-    rescue Errno::ENOENT
-      raise Error, "Source file not found: #{path}"
+      JSON.parse(FHIRStubServer.read_file(path))
     end
 
     private_class_method :resources, :read_json

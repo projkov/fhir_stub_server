@@ -5,11 +5,16 @@
 # the FHIR base URL.
 RSpec.shared_examples 'a Stub transport' do
   let(:sources) { [{ 'bundle' => fixture('demo.json') }] }
-  let(:stub) { FHIRStubServer::Stub.new('fhir' => { 'sources' => sources }) }
+  let(:pairs) { [] }
+  let(:stub) { FHIRStubServer::Stub.new('fhir' => { 'sources' => sources, 'pairs' => pairs }) }
   let(:base_url) { serve(stub) }
 
   def get(path)
     Net::HTTP.get_response(URI("#{base_url}#{path}"))
+  end
+
+  def post_form(path, form)
+    Net::HTTP.post(URI("#{base_url}#{path}"), form, 'Content-Type' => 'application/x-www-form-urlencoded')
   end
 
   it 'answers a read from Demo Data' do
@@ -38,5 +43,41 @@ RSpec.shared_examples 'a Stub transport' do
     query = { 'code' => ['8867-4'], 'date' => %w[ge2020 le2021] }
     expect(stub.unmatched).to match([{ request: include(path: '/Observation', query:) }])
     expect(stub.served).to match([include(answered_by: :miss)])
+  end
+
+  context 'with a Pair for a request Demo Data could answer' do
+    let(:pairs) do
+      [{ 'request' => { 'path' => '/Patient/p1' },
+         'response' => { 'status' => 404, 'body_file' => fixture('patient_gone.json') } }]
+    end
+
+    it 'answers with the Pair' do
+      response = get('/Patient/p1')
+
+      expect(response.code).to eq('404')
+      expect(response.body).to eq(File.read(fixture('patient_gone.json')))
+      expect(stub.served).to match([include(answered_by: 0)])
+    end
+  end
+
+  context 'with a Pair for a POST search' do
+    let(:pairs) do
+      [{ 'request' => { 'method' => 'POST', 'path' => '/Patient/_search',
+                        'body' => { 'family' => 'Smith', 'given' => %w[John Jo] } },
+         'response' => { 'body_file' => fixture('smith_searchset.json') } }]
+    end
+
+    it 'matches the form body in any order' do
+      response = post_form('/Patient/_search', 'given=Jo&family=Smith&given=John')
+
+      expect(response.code).to eq('200')
+      expect(JSON.parse(response.body)).to include('type' => 'searchset', 'total' => 1)
+      expect(stub.unmatched).to be_empty
+    end
+
+    it 'does not match a different form body, raw UTF-8 included' do
+      expect(post_form('/Patient/_search', 'family=Müller&given=John&given=Jo').code).to eq('404')
+      expect(stub.unmatched).to match([{ request: include(body: 'family=Müller&given=John&given=Jo') }])
+    end
   end
 end

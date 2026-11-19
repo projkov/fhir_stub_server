@@ -2,6 +2,7 @@ module FHIRStubServer
   VERSION: String
 
   def self.require_gem: (String name, String needed_by) -> void
+  def self.read_file: (String path) -> String
 
   # What every adapter hands to Stub#respond.
   type request = {
@@ -43,15 +44,34 @@ module FHIRStubServer
     def self.parse_query: (String query) -> Hash[String, Array[String]]
     def self.read_key: (request request) -> String?
 
+    @demo_data: Hash[String, resource]
+    @pairs: Array[Pairs::pair]
+
     private
 
-    def serve: (request request, Symbol answered_by, response response) -> response
+    def answer: (request request) -> [Integer | Symbol, response]
+    def pair_answer: (request request) -> [Integer, response]?
+    def pair_index: (request request) -> Integer?
+    def read_answer: (request request) -> [Symbol, response]?
+  end
+
+  module Pairs
+    type key = [Symbol, String, String, Hash[String, Array[String]], Hash[String, Array[String]]?]
+    type pair = { key: key, response: [Integer, String] }
+
+    BODY_KINDS: Array[String]
+
+    def self.load: (Array[Hash[String, untyped]] pairs) -> Array[pair]
+    def self.key: (request request) -> key
+    def self.request: (Hash[String, untyped] config, String where) -> request
+    def self.response: (Hash[String, untyped] config, String where) -> [Integer, String]
   end
 
   module Responses
     CONTENT_TYPE: String
 
     def self.fhir: (Integer status, resource resource) -> response
+    def self.raw: (Integer status, String body) -> response
     def self.not_found: (request request) -> response
   end
 

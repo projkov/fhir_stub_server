@@ -1,0 +1,4 @@
+{
+  "resourceType": "OperationOutcome",
+  "issue": [{ "severity": "error", "code": "not-found", "diagnostics": "Patient p1 is gone" }]
+}

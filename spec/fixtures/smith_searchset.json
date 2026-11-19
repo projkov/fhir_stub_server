@@ -1,0 +1,6 @@
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 1,
+  "entry": [{ "resource": { "resourceType": "Patient", "id": "p1", "name": [{ "family": "Smith" }] } }]
+}
