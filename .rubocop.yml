@@ -5,3 +5,8 @@ AllCops:
   Exclude:
     - 'vendor/**/*'
     - 'tmp/**/*'
+
+# Example groups, shared examples above all, grow past the default length.
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'

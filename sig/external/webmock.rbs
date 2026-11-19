@@ -1,0 +1,10 @@
+# The part of webmock's API the adapter uses: webmock ships no signatures.
+# Kept out of the packaged gem.
+module WebMock
+  def self.enable!: () -> void
+  def self.stub_request: (Symbol method, Regexp uri) -> RequestStub
+
+  class RequestStub
+    def to_return: () { (untyped request) -> Hash[Symbol, untyped] } -> self
+  end
+end

@@ -1,6 +1,55 @@
 module FHIRStubServer
   VERSION: String
 
+  # What every adapter hands to Stub#respond.
+  type request = {
+    role: :fhir | :validator,
+    method: String,
+    base_url: String,
+    path: String,
+    query: Array[[String, String]],
+    body: String?
+  }
+
+  # Rack-style [status, headers, body].
+  type response = [Integer, Hash[String, String], String]
+
+  type resource = Hash[String, untyped]
+
   class Error < StandardError
+  end
+
+  class Stub
+    READ_PATH: Regexp
+
+    attr_reader served: Array[Hash[Symbol, untyped]]
+    attr_reader unmatched: Array[Hash[Symbol, untyped]]
+
+    def initialize: (Hash[String, untyped] config) -> void
+    def respond: (request request) -> response
+    def self.read_key: (request request) -> String?
+
+    private
+
+    def serve: (request request, Symbol answered_by, response response) -> response
+  end
+
+  module Responses
+    CONTENT_TYPE: String
+
+    def self.fhir: (Integer status, resource resource) -> response
+    def self.not_found: (request request) -> response
+  end
+
+  module Sources
+    def self.load: (Array[Hash[String, String]] sources) -> Hash[String, resource]
+    def self.resources: (Hash[String, String] source) -> Array[resource]
+    def self.read_json: (String path) -> Hash[String, untyped]
+  end
+
+  module WebMockAdapter
+    def self.install: (Stub stub, fhir_base_url: String, ?validator_base_url: String?) -> void
+    def self.route: (Stub stub, :fhir | :validator role, String base_url) -> void
+    def self.stub_request: (untyped request, :fhir | :validator role, String base_url) -> request
   end
 end

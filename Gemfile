@@ -13,4 +13,5 @@ group :development, :test do
   gem 'rspec', '~> 3.13'
   gem 'rubocop', '~> 1.91', require: false
   gem 'steep', '~> 2.0', require: false
+  gem 'webmock', '~> 3.35', require: false
 end
