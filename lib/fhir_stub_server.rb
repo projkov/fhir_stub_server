@@ -2,7 +2,7 @@
 
 require_relative "fhir_stub_server/version"
 
-module FhirStubServer
+# A strict stub for the FHIR server and validator used by FHIR test kits.
+module FHIRStubServer
   class Error < StandardError; end
-  # Your code goes here...
 end
