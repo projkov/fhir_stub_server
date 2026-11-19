@@ -2,7 +2,10 @@
 
 require 'fhirpath'
 require 'json'
+require 'rubygems/package'
+require 'stringio'
 require 'uri'
+require 'zlib'
 require_relative 'fhir_stub_server/version'
 
 # A strict stub for the FHIR server and validator used by FHIR test kits.
@@ -20,8 +23,15 @@ module FHIRStubServer
   # Reads a file named in the config, so a missing one fails when the Stub is built.
   def self.read_file(path)
     File.read(path)
-  rescue Errno::ENOENT
-    raise Error, "File not found: #{path}"
+  rescue SystemCallError => error # missing, a directory, unreadable
+    raise Error, "Cannot read #{path}: #{error.message}"
+  end
+
+  # Parses a JSON file named in the config: invalid JSON fails when the Stub is built.
+  def self.parse_json(text, where)
+    JSON.parse(text)
+  rescue JSON::ParserError => error
+    raise Error, "#{where}: not valid JSON (#{error.message})"
   end
 
   # Loaded on first use, so the core requires neither webmock nor puma.

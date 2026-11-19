@@ -3,5 +3,5 @@
 target :lib do
   signature 'sig'
   check 'lib'
-  library 'json', 'uri'
+  library 'json', 'uri', 'stringio'
 end

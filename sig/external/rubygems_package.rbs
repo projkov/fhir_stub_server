@@ -1,0 +1,20 @@
+# The part of RubyGems' tar reader Sources uses: RBS ships no signatures for it.
+# Kept out of the packaged gem.
+module Gem
+  module Package
+    class TarInvalidError < StandardError
+    end
+
+    class TarReader
+      include Enumerable[Entry]
+
+      def initialize: (untyped io) -> void
+      def each: () { (Entry entry) -> void } -> void
+
+      class Entry
+        def full_name: () -> String
+        def read: () -> String?
+      end
+    end
+  end
+end

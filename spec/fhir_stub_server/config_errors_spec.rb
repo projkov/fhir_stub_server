@@ -6,9 +6,17 @@ RSpec.describe FHIRStubServer::Stub, '.new' do
                   'pairs' => [{ 'request' => request, 'response' => response }] } }
   end
 
+  duplicates = build_package('duplicates',
+                             'package/Patient-a.json' => { 'resourceType' => 'Patient', 'id' => 'dup' },
+                             'package/example/Patient-b.json' => { 'resourceType' => 'Patient', 'id' => 'dup' })
+
   {
     'a missing Source file' => [
       { 'fhir' => { 'sources' => [{ 'bundle' => '/missing/demo.json' }] } }, %r{/missing/demo\.json}
+    ],
+    'a Type/id twice in one package' => [
+      { 'fhir' => { 'sources' => [{ 'package' => duplicates }] } },
+      %r{Patient/dup is in both .*\(package/Patient-a\.json\) and .*\(package/example/Patient-b\.json\)}
     ],
     'several server CapabilityStatements' => [
       { 'fhir' => { 'sources' => [{ 'bundle' => fixture('two_servers.json') }] } },

@@ -1,0 +1,10 @@
+# The part of Zlib Sources uses. RBS's own zlib signatures take an IO only (not a StringIO)
+# and declare GzipReader.wrap as void. Kept out of the packaged gem.
+module Zlib
+  class Error < StandardError
+  end
+
+  class GzipReader
+    def self.wrap: [T] (untyped io) { (GzipReader archive) -> T } -> T
+  end
+end

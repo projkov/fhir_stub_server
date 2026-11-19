@@ -31,6 +31,22 @@ RSpec.shared_examples 'a Stub transport' do
     expect(JSON.parse(get('/metadata').body)).to include('resourceType' => 'CapabilityStatement', 'id' => 'responder')
   end
 
+  context 'with an IG package and an overrides Bundle after it' do
+    let(:sources) { [{ 'package' => ig_package }, { 'bundle' => fixture('overrides.json') }] }
+
+    it 'serves package resources as they are, the later Source winning' do
+      expect(JSON.parse(get('/Patient/p2').body)).to include('gender' => 'male')
+      expect(get('/StructureDefinition/example-patient').code).to eq('200')
+      expect(JSON.parse(get('/metadata').body)).to include('id' => 'responder')
+      expect([get('/Bundle/b1').code, get('/Patient/inside').code]).to eq(%w[200 404])
+    end
+
+    it 'reports a resource without an id as skipped at load time' do
+      expect(stub.served.first).to match(kind: :load, reason: 'resource without id',
+                                         skipped: end_with('(package/example/Patient-no-id.json)'))
+    end
+  end
+
   context 'with an overrides Bundle after the first Source' do
     let(:sources) { [{ 'bundle' => fixture('demo.json') }, { 'bundle' => fixture('overrides.json') }] }
 

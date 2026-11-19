@@ -7,14 +7,14 @@ module FHIRStubServer
     attr_reader :served, :unmatched
 
     def initialize(config)
-      demo_data = Sources.load(config.dig('fhir', 'sources') || [])
+      demo_data, @served = Sources.load(config.dig('fhir', 'sources') || [])
       @reads = Sources.reads(demo_data)
       @pairs = Pairs.load(config.dig('fhir', 'pairs') || [], demo_data)
-      @served = []
       @unmatched = []
     end
 
-    # `answered_by` in #served is the index of the Pair that answered, :demo_data or :miss.
+    # #served starts with the load-time entries; each request adds `answered_by`: the index of
+    # the Pair that answered, :demo_data or :miss.
     def respond(request)
       answered_by, response = answer(request)
       @served << { kind: :request, request:, answered_by: }

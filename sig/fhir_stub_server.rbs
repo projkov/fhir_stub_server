@@ -4,6 +4,9 @@ module FHIRStubServer
   def self.require_gem: (String name, String needed_by) -> void
   def self.read_file: (String path) -> String
 
+
+  def self.parse_json: (String text, String where) -> untyped
+
   # What every adapter hands to Stub#respond.
   type request = {
     role: :fhir | :validator,
@@ -82,13 +85,25 @@ module FHIRStubServer
   end
 
   module Sources
-    def self.load: (Array[Hash[String, String]] sources) -> Hash[String, resource]
+    type located = [String, resource]
+
+    def self.load: (Array[Hash[String, String]] sources) -> [Hash[String, resource], Array[Hash[Symbol, untyped]]]
+    def self.index: (Array[located] located) -> Hash[String, resource]
+    def self.skipped_entry: (String location) -> Hash[Symbol, untyped]
     def self.reads: (Hash[String, resource] demo_data) -> Hash[String, resource]
     def self.server_capability_statement: (Array[resource] resources) -> resource?
     def self.server?: (resource resource) -> bool
-    def self.resources: (Hash[String, String] source) -> Array[resource]
-    def self.read_json: (String path) -> Hash[String, untyped]
+    def self.key: (resource resource) -> String
+    def self.located_resources: (Hash[String, String] source) -> Array[located]
+    def self.package_resources: (String path) -> Array[located]
+    def self.tar_resources: (String path, Zlib::GzipReader archive) -> Array[located]
+    def self.package_resource: (String path, Gem::Package::TarReader::Entry entry) -> located?
+    def self.json: (Gem::Package::TarReader::Entry entry) -> untyped
+    def self.bundle_resources: (String path) -> Array[located]
+    def self.no_duplicates: (Array[located] located) -> Array[located]
+    def self.duplicate: (Array[located] located) -> [String, Array[located]]?
   end
+
 
   class RackApp
     @stub: Stub
