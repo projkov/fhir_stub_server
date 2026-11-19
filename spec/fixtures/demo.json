@@ -3,6 +3,14 @@
   "type": "collection",
   "entry": [
     { "resource": { "resourceType": "Patient", "id": "p1", "name": [{ "family": "Smith" }] } },
-    { "resource": { "resourceType": "Patient", "id": "p2", "gender": "female" } }
+    { "resource": { "resourceType": "Patient", "id": "p2", "gender": "female" } },
+    { "resource": { "resourceType": "Medication", "id": "m1" } },
+    { "resource": { "resourceType": "MedicationRequest", "id": "mr1", "subject": { "reference": "Patient/p1" },
+                    "medicationReference": { "reference": "Medication/m1" } } },
+    { "resource": { "resourceType": "MedicationRequest", "id": "mr2", "subject": { "reference": "Patient/p2" } } },
+    { "resource": { "resourceType": "CapabilityStatement", "id": "requester", "kind": "requirements",
+                    "rest": [{ "mode": "client" }] } },
+    { "resource": { "resourceType": "CapabilityStatement", "id": "responder", "kind": "requirements",
+                    "rest": [{ "mode": "server" }] } }
   ]
 }

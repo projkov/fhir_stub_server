@@ -6,6 +6,11 @@ module FHIRStubServer
   #   - request:  { method: POST, path: /Patient/_search, query: { ... }, body: { family: Smith } }
   #     response: { status: 200, body_file: bundle.json }
   #
+  # The response has exactly one body kind: `body_file` (literal JSON), `resource` (a FHIRPath
+  # expression yielding exactly one resource) or `select` (FHIRPath, answered as a searchset;
+  # an optional `include` adds resources with search.mode include). Expressions run once, over
+  # a collection Bundle of all Demo Data, when the Stub is built.
+  #
   # `path` is relative to the FHIR base and required; `method` defaults to GET, `status` to 200.
   # `query` and `body` map names to a value or a list of values. `body` is the form body and
   # only counts for `POST .../_search`; other writes match whatever body they send.
@@ -13,11 +18,10 @@ module FHIRStubServer
   module Pairs
     BODY_KINDS = %w[body_file select resource].freeze
 
-    def self.load(pairs)
-      pairs.each_with_index.map do |pair, index|
-        where = "fhir.pairs[#{index}]"
-        { key: key(request(pair['request'].to_h, where)), response: response(pair['response'].to_h, where) }
-      end
+    def self.load(pairs, demo_data)
+      bundle = { 'resourceType' => 'Bundle', 'type' => 'collection',
+                 'entry' => demo_data.values.map { |resource| { 'resource' => resource } } }
+      pairs.each_with_index.map { |pair, index| build(pair, bundle, "fhir.pairs[#{index}]") }
     end
 
     # What a request and a Pair must share to match: role, method, path, query and, for
@@ -27,6 +31,12 @@ module FHIRStubServer
       path = request[:path]
       form = Stub.parse_query(request[:body].to_s) if method == 'POST' && path.end_with?('/_search')
       [request[:role], method, path, request[:query], form]
+    end
+
+    def self.build(pair, bundle, where)
+      response = pair['response'].to_h
+      { key: key(request(pair['request'].to_h, where)), status: response.fetch('status', 200),
+        body: body(response, bundle, where) }
     end
 
     # The Pair's request, normalized exactly like an incoming one.
@@ -40,14 +50,54 @@ module FHIRStubServer
       )
     end
 
-    def self.response(config, where)
-      kinds = BODY_KINDS & config.keys
-      raise Error, "#{where}: the response needs exactly one of #{BODY_KINDS.join(', ')}" unless kinds.one?
-      raise Error, "#{where}: #{kinds.first} is not supported yet" unless kinds == ['body_file']
+    # A lambda building the body for a matched request. Only a searchset needs the request:
+    # its fullUrls and self link use the request's base URL.
+    def self.body(config, bundle, where)
+      return literal_body(config, bundle, where) unless body_kind(config, where) == 'select'
 
-      [config.fetch('status', 200), FHIRStubServer.read_file(config['body_file'])]
+      matches = evaluate(config['select'], bundle, where)
+      includes = evaluate(config['include'], bundle, where).uniq - matches # each fullUrl once
+      ->(request) { Responses.searchset(request, matches, includes) }
     end
 
-    private_class_method :request, :response
+    # The fixed body of a `body_file` or `resource` response.
+    def self.literal_body(config, bundle, where)
+      body = if config.key?('body_file')
+               FHIRStubServer.read_file(config['body_file'])
+             else
+               JSON.generate(one_resource(evaluate(config['resource'], bundle, where), where))
+             end
+      ->(_request) { body }
+    end
+
+    def self.body_kind(config, where)
+      kinds = BODY_KINDS & config.keys
+      raise Error, "#{where}: the response needs exactly one of #{BODY_KINDS.join(', ')}" unless kinds.one?
+      raise Error, "#{where}: include needs select" if config['include'] && kinds != ['select']
+
+      kinds.first
+    end
+
+    def self.evaluate(expression, bundle, where)
+      return [] unless expression
+
+      resources_only(Fhirpath.evaluate(bundle, expression), "#{where}: #{expression}")
+    rescue Fhirpath::Error => error
+      raise Error, "#{where}: #{expression}: #{error.message}"
+    end
+
+    def self.resources_only(results, label)
+      return results if results.all? { |result| result.is_a?(Hash) && result['resourceType'] }
+
+      raise Error, "#{label} must yield resources only"
+    end
+
+    def self.one_resource(results, where)
+      return results.first if results.one?
+
+      raise Error, "#{where}: resource must yield exactly one resource, got #{results.size}"
+    end
+
+    private_class_method :build, :request, :body, :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
   end
 end

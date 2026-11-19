@@ -27,6 +27,10 @@ RSpec.shared_examples 'a Stub transport' do
     expect(stub.unmatched).to be_empty
   end
 
+  it 'answers /metadata with the server CapabilityStatement' do
+    expect(JSON.parse(get('/metadata').body)).to include('resourceType' => 'CapabilityStatement', 'id' => 'responder')
+  end
+
   context 'with an overrides Bundle after the first Source' do
     let(:sources) { [{ 'bundle' => fixture('demo.json') }, { 'bundle' => fixture('overrides.json') }] }
 
@@ -78,6 +82,37 @@ RSpec.shared_examples 'a Stub transport' do
     it 'does not match a different form body, raw UTF-8 included' do
       expect(post_form('/Patient/_search', 'family=Müller&given=John&given=Jo').code).to eq('404')
       expect(stub.unmatched).to match([{ request: include(body: 'family=Müller&given=John&given=Jo') }])
+    end
+  end
+
+  context 'with a select Pair' do
+    let(:pairs) do
+      [{ 'request' => { 'path' => '/MedicationRequest',
+                        'query' => { 'patient' => 'Patient/p1', '_include' => 'MedicationRequest:medication' } },
+         'response' => {
+           'select' => "Bundle.entry.resource.ofType(MedicationRequest).where(subject.reference = 'Patient/p1')",
+           'include' => 'Bundle.entry.resource.ofType(Medication)'
+         } }]
+    end
+
+    it 'answers a searchset of matches and includes under the base URL' do
+      bundle = JSON.parse(get('/MedicationRequest?patient=Patient/p1&_include=MedicationRequest:medication').body)
+
+      expect(bundle).to include('type' => 'searchset', 'total' => 1)
+      expect(bundle['link']).to match([{ 'relation' => 'self', 'url' => start_with("#{base_url}/MedicationRequest?") }])
+      expect(bundle['entry'].map { |entry| [entry['fullUrl'], entry.dig('search', 'mode')] })
+        .to eq([["#{base_url}/MedicationRequest/mr1", 'match'], ["#{base_url}/Medication/m1", 'include']])
+    end
+  end
+
+  context 'with a resource Pair for /metadata' do
+    let(:pairs) do
+      [{ 'request' => { 'path' => '/metadata' },
+         'response' => { 'resource' => "entry.resource.ofType(CapabilityStatement).where(id = 'requester')" } }]
+    end
+
+    it 'answers with the one resource the expression yields, over the built-in /metadata' do
+      expect(JSON.parse(get('/metadata').body)).to include('resourceType' => 'CapabilityStatement', 'id' => 'requester')
     end
   end
 end

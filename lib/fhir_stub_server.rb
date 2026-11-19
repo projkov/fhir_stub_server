@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'fhirpath'
 require 'json'
 require 'uri'
 require_relative 'fhir_stub_server/version'

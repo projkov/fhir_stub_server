@@ -1,0 +1,8 @@
+# The part of fhirpath-rb's API Pairs uses: fhirpath-rb ships no signatures.
+# Kept out of the packaged gem.
+module Fhirpath
+  def self.evaluate: (Hash[String, untyped] resource, String expression) -> Array[untyped]
+
+  class Error < StandardError
+  end
+end

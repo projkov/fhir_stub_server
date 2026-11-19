@@ -4,13 +4,12 @@ module FHIRStubServer
   # Answers requests from Demo Data and records what answered each one.
   # Adapters build the request Hash and send the [status, headers, body] response back.
   class Stub
-    READ_PATH = %r{\A/(?<type>[A-Z][A-Za-z]+)/(?<id>[A-Za-z0-9\-.]{1,64})\z}
-
     attr_reader :served, :unmatched
 
     def initialize(config)
-      @demo_data = Sources.load(config.dig('fhir', 'sources') || [])
-      @pairs = Pairs.load(config.dig('fhir', 'pairs') || [])
+      demo_data = Sources.load(config.dig('fhir', 'sources') || [])
+      @reads = Sources.reads(demo_data)
+      @pairs = Pairs.load(config.dig('fhir', 'pairs') || [], demo_data)
       @served = []
       @unmatched = []
     end
@@ -43,15 +42,14 @@ module FHIRStubServer
       URI.decode_www_form(ascii).group_by(&:first).sort.to_h { |name, pairs| [name, pairs.map(&:last).sort] }
     end
 
-    # The Demo Data key for a plain `GET /<Type>/<id>` FHIR read, nil for anything else.
-    def self.read_key(request)
-      match = READ_PATH.match(request[:path])
-      "#{match[:type]}/#{match[:id]}" if match && request[:role] == :fhir && request[:method] == 'GET'
+    # The path of a FHIR GET, which a built-in read may answer; nil for anything else.
+    def self.read_path(request)
+      request[:path] if request[:role] == :fhir && request[:method] == 'GET'
     end
 
     private
 
-    # A Pair first, so it can override a read; then a Demo Data read; then a miss.
+    # A Pair first, so it can override a read; then a built-in read; then a miss.
     def answer(request)
       pair_answer(request) || read_answer(request) || [:miss, Responses.not_found(request)]
     end
@@ -60,8 +58,8 @@ module FHIRStubServer
       index = pair_index(request)
       return unless index
 
-      status, body = @pairs.fetch(index)[:response]
-      [index, Responses.raw(status, body)]
+      pair = @pairs.fetch(index)
+      [index, Responses.raw(pair[:status], pair[:body].call(request))]
     end
 
     def pair_index(request)
@@ -70,7 +68,7 @@ module FHIRStubServer
     end
 
     def read_answer(request)
-      resource = @demo_data[Stub.read_key(request)]
+      resource = @reads[Stub.read_path(request)]
       [:demo_data, Responses.fhir(200, resource)] if resource
     end
   end

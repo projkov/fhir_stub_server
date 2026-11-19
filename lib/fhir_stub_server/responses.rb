@@ -13,6 +13,24 @@ module FHIRStubServer
       [status, { 'content-type' => CONTENT_TYPE }, body]
     end
 
+    # The JSON body of a searchset: `matches` (total counts only these), then `includes`. No paging.
+    def self.searchset(request, matches, includes)
+      base_url = request[:base_url]
+      self_url = ["#{base_url}#{request[:path]}", URI.encode_www_form(request[:query])].reject(&:empty?).join('?')
+      JSON.generate({
+                      'resourceType' => 'Bundle', 'type' => 'searchset', 'total' => matches.size,
+                      'link' => [{ 'relation' => 'self', 'url' => self_url }],
+                      'entry' => entries(base_url, matches, 'match') + entries(base_url, includes, 'include')
+                    })
+    end
+
+    def self.entries(base_url, resources, mode)
+      resources.map do |resource|
+        { 'fullUrl' => "#{base_url}/#{resource['resourceType']}/#{resource['id']}",
+          'resource' => resource, 'search' => { 'mode' => mode } }
+      end
+    end
+
     def self.not_found(request)
       fhir(404, {
              'resourceType' => 'OperationOutcome',

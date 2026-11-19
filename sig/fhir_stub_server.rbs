@@ -33,8 +33,6 @@ module FHIRStubServer
   end
 
   class Stub
-    READ_PATH: Regexp
-
     attr_reader served: Array[Hash[Symbol, untyped]]
     attr_reader unmatched: Array[Hash[Symbol, untyped]]
 
@@ -42,9 +40,9 @@ module FHIRStubServer
     def respond: (request request) -> response
     def self.request: (raw_request raw) -> request
     def self.parse_query: (String query) -> Hash[String, Array[String]]
-    def self.read_key: (request request) -> String?
+    def self.read_path: (request request) -> String?
 
-    @demo_data: Hash[String, resource]
+    @reads: Hash[String, resource]
     @pairs: Array[Pairs::pair]
 
     private
@@ -57,14 +55,20 @@ module FHIRStubServer
 
   module Pairs
     type key = [Symbol, String, String, Hash[String, Array[String]], Hash[String, Array[String]]?]
-    type pair = { key: key, response: [Integer, String] }
+    type pair = { key: key, status: Integer, body: ^(request) -> String }
 
     BODY_KINDS: Array[String]
 
-    def self.load: (Array[Hash[String, untyped]] pairs) -> Array[pair]
+    def self.load: (Array[Hash[String, untyped]] pairs, Hash[String, resource] demo_data) -> Array[pair]
     def self.key: (request request) -> key
+    def self.build: (Hash[String, untyped] pair, resource bundle, String where) -> pair
     def self.request: (Hash[String, untyped] config, String where) -> request
-    def self.response: (Hash[String, untyped] config, String where) -> [Integer, String]
+    def self.body: (Hash[String, untyped] config, resource bundle, String where) -> ^(request) -> String
+    def self.literal_body: (Hash[String, untyped] config, resource bundle, String where) -> ^(request) -> String
+    def self.body_kind: (Hash[String, untyped] config, String where) -> String?
+    def self.evaluate: (String? expression, resource bundle, String where) -> Array[resource]
+    def self.resources_only: (Array[untyped] results, String label) -> Array[resource]
+    def self.one_resource: (Array[resource] results, String where) -> resource
   end
 
   module Responses
@@ -72,11 +76,16 @@ module FHIRStubServer
 
     def self.fhir: (Integer status, resource resource) -> response
     def self.raw: (Integer status, String body) -> response
+    def self.searchset: (request request, Array[resource] matches, Array[resource] includes) -> String
+    def self.entries: (String base_url, Array[resource] resources, String mode) -> Array[Hash[String, untyped]]
     def self.not_found: (request request) -> response
   end
 
   module Sources
     def self.load: (Array[Hash[String, String]] sources) -> Hash[String, resource]
+    def self.reads: (Hash[String, resource] demo_data) -> Hash[String, resource]
+    def self.server_capability_statement: (Array[resource] resources) -> resource?
+    def self.server?: (resource resource) -> bool
     def self.resources: (Hash[String, String] source) -> Array[resource]
     def self.read_json: (String path) -> Hash[String, untyped]
   end

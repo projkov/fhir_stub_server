@@ -1,0 +1,8 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    { "resource": { "resourceType": "CapabilityStatement", "id": "a", "rest": [{ "mode": "server" }] } },
+    { "resource": { "resourceType": "CapabilityStatement", "id": "b", "rest": [{ "mode": "server" }] } }
+  ]
+}
