@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
-source "https://rubygems.org"
+source 'https://rubygems.org'
 
 gemspec
 
 group :development, :test do
-  gem "irb"
-  gem "rake", "~> 13.0"
-  gem "rspec", "~> 3.13"
+  gem 'flay', '~> 2.14', require: false
+  gem 'flog', '~> 4.9', require: false
+  gem 'irb'
+  gem 'rake', '~> 13.0'
+  gem 'reek', '~> 6.5', require: false
+  gem 'rspec', '~> 3.13'
+  gem 'rubocop', '~> 1.91', require: false
+  gem 'steep', '~> 2.0', require: false
 end

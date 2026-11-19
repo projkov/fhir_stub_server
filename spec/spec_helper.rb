@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "fhir_stub_server"
+require 'fhir_stub_server'
 
 RSpec.configure do |config|
   config.disable_monkey_patching!
