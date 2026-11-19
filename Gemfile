@@ -8,6 +8,7 @@ group :development, :test do
   gem 'flay', '~> 2.14', require: false
   gem 'flog', '~> 4.9', require: false
   gem 'irb'
+  gem 'puma', '~> 8.0', require: false
   gem 'rake', '~> 13.0'
   gem 'reek', '~> 6.5', require: false
   gem 'rspec', '~> 3.13'

@@ -1,0 +1,11 @@
+# The part of puma's API HTTPServer uses: puma ships no signatures.
+# Kept out of the packaged gem.
+module Puma
+  class Server
+    def initialize: (untyped app) -> void
+    def add_tcp_listener: (String host, Integer port) -> untyped
+    def run: () -> Thread
+    def stop: (bool sync) -> void
+    def connected_ports: () -> Array[Integer]
+  end
+end

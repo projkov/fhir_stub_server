@@ -31,11 +31,12 @@ RSpec.shared_examples 'a Stub transport' do
   end
 
   it 'answers an undeclared request with an OperationOutcome 404 and reports it' do
-    response = get('/Patient?family=Smith')
+    response = get('/Observation?date=le2021&code=8867-4&date=ge2020')
 
     expect(response.code).to eq('404')
     expect(JSON.parse(response.body)).to include('resourceType' => 'OperationOutcome')
-    expect(stub.unmatched).to match([{ request: include(path: '/Patient', query: [%w[family Smith]]) }])
+    query = { 'code' => ['8867-4'], 'date' => %w[ge2020 le2021] }
+    expect(stub.unmatched).to match([{ request: include(path: '/Observation', query:) }])
     expect(stub.served).to match([include(answered_by: :miss)])
   end
 end

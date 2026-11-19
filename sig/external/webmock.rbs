@@ -4,6 +4,11 @@ module WebMock
   def self.enable!: () -> void
   def self.stub_request: (Symbol method, Regexp uri) -> RequestStub
 
+  class Config
+    def self.instance: () -> Config
+    attr_accessor query_values_notation: Symbol
+  end
+
   class RequestStub
     def to_return: () { (untyped request) -> Hash[Symbol, untyped] } -> self
   end

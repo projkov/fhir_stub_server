@@ -6,7 +6,7 @@ module FHIRStubServer
     CONTENT_TYPE = 'application/fhir+json'
 
     def self.fhir(status, resource)
-      [status, { 'Content-Type' => CONTENT_TYPE }, JSON.generate(resource)]
+      [status, { 'content-type' => CONTENT_TYPE }, JSON.generate(resource)]
     end
 
     def self.not_found(request)

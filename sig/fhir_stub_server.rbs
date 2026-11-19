@@ -1,13 +1,25 @@
 module FHIRStubServer
   VERSION: String
 
+  def self.require_gem: (String name, String needed_by) -> void
+
   # What every adapter hands to Stub#respond.
   type request = {
     role: :fhir | :validator,
     method: String,
     base_url: String,
     path: String,
-    query: Array[[String, String]],
+    query: Hash[String, Array[String]],
+    body: String?
+  }
+
+  # What an adapter reads off its transport, before Stub.request normalizes it.
+  type raw_request = {
+    role: :fhir | :validator,
+    method: String,
+    base_url: String,
+    path: String,
+    query: String,
     body: String?
   }
 
@@ -27,6 +39,8 @@ module FHIRStubServer
 
     def initialize: (Hash[String, untyped] config) -> void
     def respond: (request request) -> response
+    def self.request: (raw_request raw) -> request
+    def self.parse_query: (String query) -> Hash[String, Array[String]]
     def self.read_key: (request request) -> String?
 
     private
@@ -45,6 +59,24 @@ module FHIRStubServer
     def self.load: (Array[Hash[String, String]] sources) -> Hash[String, resource]
     def self.resources: (Hash[String, String] source) -> Array[resource]
     def self.read_json: (String path) -> Hash[String, untyped]
+  end
+
+  class RackApp
+    @stub: Stub
+    @base_paths: Hash[:fhir | :validator, String]
+
+    def initialize: (Stub stub, ?fhir_base_path: String, ?validator_base_path: String) -> void
+    def call: (Hash[String, untyped] env) -> [Integer, Hash[String, String], Array[String]]
+    def base_path_for: (String path) -> [:fhir | :validator, String]?
+    def self.stub_request: (Hash[String, untyped] env, :fhir | :validator role, String base_path) -> request
+  end
+
+  class HTTPServer
+    @server: Puma::Server
+
+    def initialize: (Stub stub, **String rack_app_options) -> void
+    def start: () -> String
+    def stop: () -> void
   end
 
   module WebMockAdapter
