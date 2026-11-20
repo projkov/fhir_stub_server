@@ -38,6 +38,11 @@ RSpec.shared_examples 'a Stub transport' do
     expect(stub.unmatched).to be_empty
   end
 
+  it 'does not answer a read that carries a query parameter' do
+    expect(get('/Patient/p1?x=1').code).to eq('404')
+    expect(stub.unmatched).to match([include(request: include(path: '/Patient/p1', query: { 'x' => ['1'] }))])
+  end
+
   it 'answers /metadata with the server CapabilityStatement' do
     expect(JSON.parse(get('/metadata').body)).to include('resourceType' => 'CapabilityStatement', 'id' => 'responder')
   end

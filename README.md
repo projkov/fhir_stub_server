@@ -67,7 +67,9 @@ yielding zero or several resources.
   ignored. A Bundle in a package stays whole, as `Bundle/<id>`.
 - A resource without an `id` is skipped and recorded as a load-time entry in `#served`.
 - Without any Pair, Demo Data answers `GET /<Type>/<id>`, and `GET /metadata` with the
-  one CapabilityStatement whose `rest.mode` is `server` (an IG's responder).
+  one CapabilityStatement whose `rest.mode` is `server` (an IG's responder). Only a read
+  without query parameters is answered; `GET /Patient/p1?x=1` is a miss unless a Pair
+  declares it.
 
 ### Pairs
 

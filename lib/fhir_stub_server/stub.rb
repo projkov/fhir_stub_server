@@ -50,9 +50,10 @@ module FHIRStubServer
       URI.decode_www_form(ascii).group_by(&:first).sort.to_h { |name, pairs| [name, pairs.map(&:last).sort] }
     end
 
-    # The path of a FHIR GET, which a built-in read may answer; nil for anything else.
+    # The path of a FHIR GET without query parameters, which a built-in read may answer; nil for
+    # anything else, so a read that gains a parameter is a miss unless a Pair declares it.
     def self.read_path(request)
-      request[:path] if request[:role] == :fhir && request[:method] == 'GET'
+      request[:path] if request[:role] == :fhir && request[:method] == 'GET' && request[:query].empty?
     end
 
     private
