@@ -4,12 +4,13 @@ module FHIRStubServer
   # Hands each request to its role (FHIRRole or Validator) and records what answered it.
   # Adapters build the request Hash and send the [status, headers, body] response back.
   class Stub
-    def initialize(config)
+    # File paths in the config are relative to `dir`, by default the working directory.
+    def initialize(config, dir: '.')
       fhir = config['fhir'].to_h
-      demo_data, served = Sources.load(fhir['sources'].to_a)
+      demo_data, served = Sources.load(fhir['sources'].to_a, dir)
       validator = config['validator']
       @validator = validator ? true : false
-      @roles = { fhir: FHIRRole.new(fhir, demo_data), validator: Validator.new(validator.to_h) }
+      @roles = { fhir: FHIRRole.new(fhir, demo_data, dir), validator: Validator.new(validator.to_h) }
       @reports = { served:, unmatched: [], context_mismatches: [] }
     end
 

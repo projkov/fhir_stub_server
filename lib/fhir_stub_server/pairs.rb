@@ -18,10 +18,17 @@ module FHIRStubServer
   module Pairs
     BODY_KINDS = %w[body_file select resource].freeze
 
-    def self.load(pairs, demo_data)
+    def self.load(pairs, demo_data, dir)
       bundle = { 'resourceType' => 'Bundle', 'type' => 'collection',
                  'entry' => demo_data.values.map { |resource| { 'resource' => resource } } }
-      pairs.each_with_index.map { |pair, index| build(pair, bundle, "fhir.pairs[#{index}]") }
+      pairs.each_with_index.map { |pair, index| build(with_dir(pair, dir), bundle, "fhir.pairs[#{index}]") }
+    end
+
+    # The Pair with its `body_file` relative to `dir`.
+    def self.with_dir(pair, dir)
+      response = pair['response'].to_h
+      file = response['body_file']
+      file ? pair.merge('response' => response.merge('body_file' => File.expand_path(file, dir))) : pair
     end
 
     # What a request and a Pair must share to match: method, path, query and, for
@@ -140,7 +147,7 @@ module FHIRStubServer
       raise Error, "#{where}: resource must yield exactly one resource, got #{results.size}"
     end
 
-    private_class_method :match, :candidates, :differences, :diff, :build, :request, :body, :literal_body, :body_kind,
-                         :evaluate, :resources_only, :one_resource
+    private_class_method :with_dir, :match, :candidates, :differences, :diff, :build, :request, :body,
+                         :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
   end
 end

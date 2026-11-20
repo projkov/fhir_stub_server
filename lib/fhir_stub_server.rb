@@ -21,21 +21,7 @@ module FHIRStubServer
     config = document.is_a?(Hash) ? document.fetch('server', document) : document
     raise Error, "#{path}: the config must be a mapping" unless config.is_a?(Hash)
 
-    Stub.new(with_paths(config, File.dirname(path)))
-  end
-
-  def self.with_paths(config, dir)
-    fhir = config['fhir'].to_h
-    sources = fhir['sources'].to_a.map { |source| expand(source, dir, 'package', 'bundle') }
-    config.merge('fhir' => fhir.merge('sources' => sources, 'pairs' => with_body_paths(fhir['pairs'].to_a, dir)))
-  end
-
-  def self.with_body_paths(pairs, dir)
-    pairs.map { |pair| pair.merge('response' => expand(pair['response'].to_h, dir, 'body_file')) }
-  end
-
-  def self.expand(hash, dir, *keys)
-    hash.merge(hash.slice(*keys).compact.transform_values { |path| File.expand_path(path, dir) })
+    Stub.new(config, dir: File.dirname(path))
   end
 
   # For the adapters' optional dependencies, which the consuming kit's Gemfile supplies.
@@ -59,8 +45,6 @@ module FHIRStubServer
   rescue JSON::ParserError, Psych::Exception => error
     raise Error, "#{path}: not valid #{format.upcase} (#{error.message})"
   end
-
-  private_class_method :with_paths, :with_body_paths, :expand
 
   # Loaded on first use, so the core requires neither webmock nor puma.
   autoload :WebMockAdapter, 'fhir_stub_server/webmock_adapter'

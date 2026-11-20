@@ -5,17 +5,19 @@ module FHIRStubServer
   # A Source is `package: <FHIR NPM package .tgz>` or `bundle: <Bundle .json>`.
   module Sources
     # Returns the index and the load-time #served entries for resources skipped for having no id.
-    def self.load(sources)
-      kept, skipped = sources.flat_map { |source| located_resources(source) }.partition { |_, resource| resource['id'] }
-      [index(kept), skipped.map { |location, _| skipped_entry(location) }]
+    # Source paths are relative to `dir`.
+    def self.load(sources, dir)
+      located = sources.flat_map { |source| located_resources(source, dir) }
+      kept, skipped = located.partition { |_, resource| resource['id'] }
+      [index(kept), skipped_entries(skipped)]
     end
 
     def self.index(located)
       located.to_h { |_, resource| [key(resource), resource] }
     end
 
-    def self.skipped_entry(location)
-      { kind: :load, skipped: location, reason: 'resource without id' }
+    def self.skipped_entries(skipped)
+      skipped.map { |location, _| { kind: :load, skipped: location, reason: 'resource without id' } }
     end
 
     # What the built-in reads answer: `/<Type>/<id>` for every resource, and `/metadata` for the
@@ -44,8 +46,8 @@ module FHIRStubServer
     end
 
     # A Source's resources as [location, resource] pairs, the location naming the file.
-    def self.located_resources(source)
-      package, bundle = source.values_at('package', 'bundle')
+    def self.located_resources(source, dir)
+      package, bundle = source.values_at('package', 'bundle').map { |path| File.expand_path(path, dir) if path }
       return no_duplicates(package_resources(package)) if package
       return bundle_resources(bundle) if bundle
 
@@ -98,7 +100,7 @@ module FHIRStubServer
              .find { |_, copies| copies.size > 1 }
     end
 
-    private_class_method :index, :skipped_entry, :server_capability_statement, :server?, :key, :located_resources,
+    private_class_method :index, :skipped_entries, :server_capability_statement, :server?, :key, :located_resources,
                          :package_resources, :tar_resources, :package_resource, :json, :bundle_resources,
                          :no_duplicates, :duplicate
   end

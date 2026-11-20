@@ -51,8 +51,9 @@ Quote dates and times (`birthdate: '1970-01-01'`): unquoted, YAML reads them as 
 which the config does not accept.
 
 `FHIRStubServer.load(path)` reads such a file, or the `server:` block of a kit's
-`scenario.yml`, and returns a `FHIRStubServer::Stub`. `FHIRStubServer::Stub.new(hash)`
-takes the same config as a Hash (paths relative to the working directory).
+`scenario.yml`, and returns a `FHIRStubServer::Stub`. `FHIRStubServer::Stub.new(hash, dir: '.')`
+takes the same config as a Hash, its paths relative to `dir` (by default the working
+directory).
 
 Every config error raises a `FHIRStubServer::Error` naming the file or Pair when the
 Stub is built, never when a request arrives: a missing or invalid file, the same

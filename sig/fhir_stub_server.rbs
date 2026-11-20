@@ -2,9 +2,6 @@ module FHIRStubServer
   VERSION: String
 
   def self.load: (String path) -> Stub
-  def self.with_paths: (Hash[String, untyped] config, String dir) -> Hash[String, untyped]
-  def self.with_body_paths: (Array[Hash[String, untyped]] pairs, String dir) -> Array[Hash[String, untyped]]
-  def self.expand: (Hash[String, untyped] hash, String dir, *String keys) -> Hash[String, untyped]
   def self.require_gem: (String name, String needed_by) -> void
   def self.read_file: (String path) -> String
   def self.parse_file: (String path, :json | :yaml format) -> untyped
@@ -38,7 +35,7 @@ module FHIRStubServer
   end
 
   class Stub
-    def initialize: (Hash[String, untyped] config) -> void
+    def initialize: (Hash[String, untyped] config, ?dir: String) -> void
     def served: () -> Array[Hash[Symbol, untyped]]
     def unmatched: () -> Array[Hash[Symbol, untyped]]
     def context_mismatches: () -> Array[Hash[Symbol, untyped]]
@@ -60,7 +57,7 @@ module FHIRStubServer
     @pairs: Array[Pairs::pair]
     @reads: Hash[String, resource]
 
-    def initialize: (Hash[String, untyped] config, Hash[String, resource] demo_data) -> void
+    def initialize: (Hash[String, untyped] config, Hash[String, resource] demo_data, String dir) -> void
     def answer: (request request) -> answer
     def self.read_path: (request request) -> String?
 
@@ -76,7 +73,8 @@ module FHIRStubServer
 
     BODY_KINDS: Array[String]
 
-    def self.load: (Array[Hash[String, untyped]] pairs, Hash[String, resource] demo_data) -> Array[pair]
+    def self.load: (Array[Hash[String, untyped]] pairs, Hash[String, resource] demo_data, String dir) -> Array[pair]
+    def self.with_dir: (Hash[String, untyped] pair, String dir) -> Hash[String, untyped]
     def self.answer: (Array[pair] pairs, request request) -> [Integer, response]?
     def self.match: (Array[pair] pairs, request request) -> Integer?
     def self.key: (request request) -> key
@@ -108,14 +106,14 @@ module FHIRStubServer
   module Sources
     type located = [String, resource]
 
-    def self.load: (Array[Hash[String, String]] sources) -> [Hash[String, resource], Array[Hash[Symbol, untyped]]]
+    def self.load: (Array[Hash[String, String]] sources, String dir) -> [Hash[String, resource], Array[Hash[Symbol, untyped]]]
     def self.index: (Array[located] located) -> Hash[String, resource]
-    def self.skipped_entry: (String location) -> Hash[Symbol, untyped]
+    def self.skipped_entries: (Array[located] skipped) -> Array[Hash[Symbol, untyped]]
     def self.reads: (Hash[String, resource] demo_data) -> Hash[String, resource]
     def self.server_capability_statement: (Array[resource] resources) -> resource?
     def self.server?: (resource resource) -> bool
     def self.key: (resource resource) -> String
-    def self.located_resources: (Hash[String, String] source) -> Array[located]
+    def self.located_resources: (Hash[String, String] source, String dir) -> Array[located]
     def self.package_resources: (String path) -> Array[located]
     def self.tar_resources: (String path, Zlib::GzipReader archive) -> Array[located]
     def self.package_resource: (String path, Gem::Package::TarReader::Entry entry) -> located?

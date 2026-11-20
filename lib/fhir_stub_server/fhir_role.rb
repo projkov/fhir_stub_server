@@ -4,8 +4,8 @@ module FHIRStubServer
   # Answers FHIR requests from `fhir.pairs` and Demo Data, the way Stub expects of a role:
   # [answered_by, response, { report name => entries }].
   class FHIRRole
-    def initialize(config, demo_data)
-      @pairs = Pairs.load(config['pairs'].to_a, demo_data)
+    def initialize(config, demo_data, dir)
+      @pairs = Pairs.load(config['pairs'].to_a, demo_data, dir)
       @reads = Sources.reads(demo_data)
     end
 
