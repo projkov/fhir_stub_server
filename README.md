@@ -156,6 +156,8 @@ server.stop
 background thread. `FHIRStubServer::RackApp.new(stub, fhir_base_path: '/fhir',
 validator_base_path: '/validator')` is the Rack app behind it, for any Rack server.
 Requests outside both base paths get a plain 404 and are not recorded.
+`HTTPServer.new` also takes any other Rack app (such as a `Replay`) and serves it as it is;
+`#wait` blocks until `#stop`.
 
 ## Scenario replay
 
