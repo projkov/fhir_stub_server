@@ -90,12 +90,17 @@ RSpec.shared_examples 'a Stub transport' do
       end
     end
 
-    it 'reports the Pair with the fewest differences and those differences' do
+    it 'reports the Pair with the fewest differences and those differences, also as one line' do
       get('/Observation?code=8867-4&patient=p2&_count=10')
 
       differences = { '_count' => { expected: nil, actual: ['10'] },
                       'patient' => { expected: ['p1'], actual: ['p2'] } }
       expect(stub.unmatched).to match([include(request: include(path: '/Observation'), nearest_pair: 1, differences:)])
+      expect(stub.unmatched_report).to eq(
+        'Unmatched fhir GET /Observation?_count=10&code=8867-4&patient=p2; nearest fhir.pairs[1]: ' \
+        '_count expected nil, got ["10"]; patient expected ["p1"], got ["p2"]; ' \
+        'request: {"path":"/Observation","query":{"_count":"10","code":"8867-4","patient":"p2"}}'
+      )
     end
   end
 

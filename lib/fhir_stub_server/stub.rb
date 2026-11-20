@@ -18,6 +18,10 @@ module FHIRStubServer
     def unmatched = @reports[:unmatched]
     def context_mismatches = @reports[:context_mismatches]
 
+    # #unmatched as one line per miss (see Unmatched.describe), empty when there is none:
+    # a readable failure message for `expect(stub.unmatched).to be_empty, stub.unmatched_report`.
+    def unmatched_report = unmatched.map { |miss| Unmatched.describe(miss) }.join("\n")
+
     # Whether the config has a `validator:` block; without one the adapters route only the FHIR role.
     def validator? = @validator
 

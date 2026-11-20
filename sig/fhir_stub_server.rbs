@@ -39,6 +39,7 @@ module FHIRStubServer
     def served: () -> Array[Hash[Symbol, untyped]]
     def unmatched: () -> Array[Hash[Symbol, untyped]]
     def context_mismatches: () -> Array[Hash[Symbol, untyped]]
+    def unmatched_report: () -> String
     def validator?: () -> bool
     def respond: (request request) -> response
 
@@ -159,6 +160,12 @@ module FHIRStubServer
     def self.stub_request: (Hash[String, untyped] env, :fhir | :validator role, String base_path) -> request
   end
 
+  module Unmatched
+    def self.describe: (Hash[Symbol, untyped] miss) -> String
+    def self.differences: (Pairs::differences differences) -> String
+    def self.suggestion: (Hash[Symbol, untyped] miss) -> String
+  end
+
   class Replay
     @rack_app: RackApp
     @unmatched: Array[Hash[Symbol, untyped]]
@@ -167,9 +174,6 @@ module FHIRStubServer
 
     def initialize: (Stub stub, ?IO log) -> void
     def call: (Hash[String, untyped] env) -> [Integer, Hash[String, String], Array[String]]
-    def self.describe: (Hash[Symbol, untyped] miss) -> String
-    def self.differences: (Pairs::differences differences) -> String
-
     private
 
     def logging_misses: () { () -> [Integer, Hash[String, String], Array[String]] } -> [Integer, Hash[String, String], Array[String]]
