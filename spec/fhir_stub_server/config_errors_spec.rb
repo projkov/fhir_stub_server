@@ -10,6 +10,12 @@ RSpec.describe FHIRStubServer::Stub, '.new' do
                              'package/Patient-a.json' => { 'resourceType' => 'Patient', 'id' => 'dup' },
                              'package/example/Patient-b.json' => { 'resourceType' => 'Patient', 'id' => 'dup' })
 
+  # fhirpath-rb 0.1.7 reads birthDate as the Hash of _birthDate and raises a TypeError.
+  absent_birth_date = build_package('absent_birth_date', 'package/Patient-p1.json' => {
+                                      'resourceType' => 'Patient', 'id' => 'p1',
+                                      '_birthDate' => { 'extension' => [{ 'url' => 'http://example.org/absent' }] }
+                                    })
+
   {
     'a missing Source file' => [
       { 'fhir' => { 'sources' => [{ 'bundle' => '/missing/demo.json' }] } }, %r{/missing/demo\.json}
@@ -47,6 +53,18 @@ RSpec.describe FHIRStubServer::Stub, '.new' do
     ],
     'an invalid FHIRPath expression' => [
       pair.call({ 'select' => 'entry.resource.((' }), /fhir\.pairs\[0\]: entry\.resource\.\(\(/
+    ],
+    'a select expression yielding no resource' => [
+      pair.call({ 'select' => 'entry.resource.id' }),
+      /\Afhir\.pairs\[0\]: entry\.resource\.id must yield resources only\z/
+    ],
+    'an expression fhirpath-rb fails on' => [
+      { 'fhir' => { 'sources' => [{ 'package' => absent_birth_date }],
+                    'pairs' => [{ 'request' => { 'path' => '/Patient' },
+                                  'response' => {
+                                    'select' => 'entry.resource.where(birthDate.convertsToDate())'
+                                  } }] } },
+      /fhir\.pairs\[0\]: entry\.resource\.where\(birthDate\.convertsToDate\(\)\): TypeError: no implicit conversion/
     ]
   }.each do |name, (config, message)|
     it "raises on #{name}" do

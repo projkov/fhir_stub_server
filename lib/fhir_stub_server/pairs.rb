@@ -137,8 +137,10 @@ module FHIRStubServer
       return [] unless expression
 
       resources_only(Fhirpath.evaluate(bundle, expression), "#{where}: #{expression}")
-    rescue Fhirpath::Error => error
-      raise Error, "#{where}: #{expression}: #{error.message}"
+    rescue StandardError => error # a Fhirpath::Error, or a fhirpath-rb bug such as a TypeError
+      raise if error.is_a?(Error) # from resources_only, already labelled
+
+      raise Error, "#{where}: #{expression}: #{error.class}: #{error.message}"
     end
 
     def self.resources_only(results, label)
