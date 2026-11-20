@@ -2,12 +2,14 @@
 
 module FHIRStubServer
   # A Rack app serving a Stub: the FHIR role under `fhir_base_path`, the validator role under
-  # `validator_base_path`. Requests outside both get a plain 404 and are not recorded.
+  # `validator_base_path` when the Stub has a validator block. Requests outside these get a
+  # plain 404 and are not recorded.
   # Needs no rack gem: it only reads the Rack env.
   class RackApp
     def initialize(stub, fhir_base_path: '/fhir', validator_base_path: '/validator')
       @stub = stub
-      @base_paths = { fhir: fhir_base_path.chomp('/'), validator: validator_base_path.chomp('/') }
+      @base_paths = { fhir: fhir_base_path, validator: (validator_base_path if stub.validator?) }
+                    .compact.transform_values { |path| path.chomp('/') }
     end
 
     def call(env)

@@ -1,0 +1,9 @@
+# A kit's scenario.yml: the Stub reads only its server: block. Paths are relative to this file.
+suite_id: example_suite
+server:
+  fhir:
+    sources:
+      - bundle: demo.json
+    pairs:
+      - request: { path: /Patient/p1 }
+        response: { status: 404, body_file: patient_gone.json }

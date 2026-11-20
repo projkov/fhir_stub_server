@@ -9,6 +9,7 @@ group :development, :test do
   gem 'flog', '~> 4.9', require: false
   gem 'irb'
   gem 'puma', '~> 8.0', require: false
+  gem 'rackup', '~> 2.2', require: false
   gem 'rake', '~> 13.0'
   gem 'reek', '~> 6.5', require: false
   gem 'rspec', '~> 3.13'

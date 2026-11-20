@@ -2,12 +2,16 @@
 
 # The main seam: every adapter must give the same responses and reports for the same config
 # and requests. Including groups define `serve(stub)`, which starts the adapter and returns
-# the FHIR base URL.
+# the base URLs as { fhir:, validator: }.
 RSpec.shared_examples 'a Stub transport' do
   let(:sources) { [{ 'bundle' => fixture('demo.json') }] }
   let(:pairs) { [] }
-  let(:stub) { FHIRStubServer::Stub.new('fhir' => { 'sources' => sources, 'pairs' => pairs }) }
-  let(:base_url) { serve(stub) }
+  let(:validator) { nil }
+  let(:stub) do
+    FHIRStubServer::Stub.new({ 'fhir' => { 'sources' => sources, 'pairs' => pairs }, 'validator' => validator }.compact)
+  end
+  let(:base_urls) { serve(stub) }
+  let(:base_url) { base_urls[:fhir] }
 
   def get(path)
     Net::HTTP.get_response(URI("#{base_url}#{path}"))
@@ -15,6 +19,13 @@ RSpec.shared_examples 'a Stub transport' do
 
   def post_form(path, form)
     Net::HTTP.post(URI("#{base_url}#{path}"), form, 'Content-Type' => 'application/x-www-form-urlencoded')
+  end
+
+  # What Inferno's validator client sends: the file is named after the profile's last segment.
+  def validate(profile, resource, context)
+    file = { 'fileName' => "#{profile}.json", 'fileContent' => JSON.generate(resource), 'fileType' => 'json' }
+    body = { **context, 'sessionId' => 'abc', 'filesToValidate' => [file] }
+    Net::HTTP.post(URI("#{base_urls[:validator]}/validate"), JSON.generate(body), 'Content-Type' => 'application/json')
   end
 
   it 'answers a read from Demo Data' do
@@ -148,6 +159,33 @@ RSpec.shared_examples 'a Stub transport' do
 
     it 'answers with the one resource the expression yields, over the built-in /metadata' do
       expect(JSON.parse(get('/metadata').body)).to include('resourceType' => 'CapabilityStatement', 'id' => 'requester')
+    end
+  end
+
+  context 'with a validator block' do
+    let(:issue) { { 'level' => 'ERROR', 'message' => 'Patient.name: minimum required = 1' } }
+    let(:validator) do
+      { 'pairs' => [{ 'profile' => 'example-patient', 'resource' => 'Patient/p1', 'issues' => [issue] }],
+        'expected_context' => { 'sv' => '4.0.1', 'txServer' => 'n/a' } }
+    end
+    let(:patient) { { 'resourceType' => 'Patient', 'id' => 'p1' } }
+
+    it 'answers a validate call with the canned issues and reports context mismatches' do
+      response = validate('example-patient', patient,
+                          'validationContext' => { 'sv' => '4.0.1', 'txServer' => 'http://tx.fhir.org', 'igs' => [] })
+
+      expect(JSON.parse(response.body)).to eq('sessionId' => 'stub', 'outcomes' => [{ 'issues' => [issue] }])
+      expect(stub.context_mismatches).to match([{ request: include(role: :validator), key: 'txServer',
+                                                  expected: 'n/a', actual: 'http://tx.fhir.org' }])
+      expect(stub.served).to match([include(answered_by: 0, request: include(role: :validator))])
+    end
+
+    it 'reports a validate call no Pair matches' do
+      response = validate('other-profile', patient, 'cliContext' => { 'sv' => '4.0.1', 'txServer' => 'n/a' })
+
+      expect(response.code).to eq('404')
+      expect(stub.unmatched).to match([include(request: include(role: :validator, path: '/validate'))])
+      expect(stub.context_mismatches).to be_empty
     end
   end
 end

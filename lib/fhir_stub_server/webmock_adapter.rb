@@ -4,14 +4,15 @@ FHIRStubServer.require_gem('webmock', 'FHIRStubServer::WebMockAdapter')
 
 module FHIRStubServer
   # Sends requests WebMock intercepts under the given base URLs to a Stub, for in-process runs.
-  # Requests outside these base URLs are left to WebMock (and `disable_net_connect!`).
+  # Requests outside these base URLs are left to WebMock (and `disable_net_connect!`), as are
+  # validator calls when the Stub has no validator block.
   module WebMockAdapter
     def self.install(stub, fhir_base_url:, validator_base_url: nil)
       WebMock.enable! # a plain `require 'webmock'` intercepts nothing; webmock/rspec enables it
       # The default notation parses the query into a Hash and keeps only the last of repeated
       # parameters (`date=ge2020&date=le2021`). Global: hash_including query stubs stop matching.
       WebMock::Config.instance.query_values_notation = :flat_array
-      { fhir: fhir_base_url, validator: validator_base_url }.compact.each do |role, base_url|
+      { fhir: fhir_base_url, validator: (validator_base_url if stub.validator?) }.compact.each do |role, base_url|
         route(stub, role, base_url.chomp('/'))
       end
     end

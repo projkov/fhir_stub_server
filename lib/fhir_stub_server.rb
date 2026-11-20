@@ -5,6 +5,7 @@ require 'json'
 require 'rubygems/package'
 require 'stringio'
 require 'uri'
+require 'yaml'
 require 'zlib'
 require_relative 'fhir_stub_server/version'
 
@@ -12,6 +13,30 @@ require_relative 'fhir_stub_server/version'
 module FHIRStubServer
   # Base class for every error the gem raises, including config errors at build time.
   class Error < StandardError; end
+
+  # Builds a Stub from a YAML config file, or from the `server:` block of a kit's scenario.yml.
+  # Source paths and `body_file`s are relative to the file.
+  def self.load(path)
+    document = parse_file(path, :yaml)
+    config = document.is_a?(Hash) ? document.fetch('server', document) : document
+    raise Error, "#{path}: the config must be a mapping" unless config.is_a?(Hash)
+
+    Stub.new(with_paths(config, File.dirname(path)))
+  end
+
+  def self.with_paths(config, dir)
+    fhir = config['fhir'].to_h
+    sources = fhir['sources'].to_a.map { |source| expand(source, dir, 'package', 'bundle') }
+    config.merge('fhir' => fhir.merge('sources' => sources, 'pairs' => with_body_paths(fhir['pairs'].to_a, dir)))
+  end
+
+  def self.with_body_paths(pairs, dir)
+    pairs.map { |pair| pair.merge('response' => expand(pair['response'].to_h, dir, 'body_file')) }
+  end
+
+  def self.expand(hash, dir, *keys)
+    hash.merge(hash.slice(*keys).compact.transform_values { |path| File.expand_path(path, dir) })
+  end
 
   # For the adapters' optional dependencies, which the consuming kit's Gemfile supplies.
   def self.require_gem(name, needed_by)
@@ -27,12 +52,15 @@ module FHIRStubServer
     raise Error, "Cannot read #{path}: #{error.message}"
   end
 
-  # Parses a JSON file named in the config: invalid JSON fails when the Stub is built.
-  def self.parse_json(text, where)
-    JSON.parse(text)
-  rescue JSON::ParserError => error
-    raise Error, "#{where}: not valid JSON (#{error.message})"
+  # Reads a JSON or YAML file named in the config: invalid content fails when the Stub is built.
+  def self.parse_file(path, format)
+    text = read_file(path)
+    format == :yaml ? YAML.safe_load(text, aliases: true) : JSON.parse(text)
+  rescue JSON::ParserError, Psych::Exception => error
+    raise Error, "#{path}: not valid #{format.upcase} (#{error.message})"
   end
+
+  private_class_method :with_paths, :with_body_paths, :expand
 
   # Loaded on first use, so the core requires neither webmock nor puma.
   autoload :WebMockAdapter, 'fhir_stub_server/webmock_adapter'
@@ -41,6 +69,8 @@ end
 
 require_relative 'fhir_stub_server/pairs'
 require_relative 'fhir_stub_server/rack_app'
+require_relative 'fhir_stub_server/replay'
 require_relative 'fhir_stub_server/responses'
 require_relative 'fhir_stub_server/sources'
 require_relative 'fhir_stub_server/stub'
+require_relative 'fhir_stub_server/validator'

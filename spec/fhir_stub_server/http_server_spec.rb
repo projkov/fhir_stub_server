@@ -8,7 +8,8 @@ RSpec.describe FHIRStubServer::HTTPServer do
   def serve(stub)
     server = described_class.new(stub)
     servers << server
-    "#{server.start}/fhir"
+    base_url = server.start
+    { fhir: "#{base_url}/fhir", validator: "#{base_url}/validator" }
   end
 
   it_behaves_like 'a Stub transport'

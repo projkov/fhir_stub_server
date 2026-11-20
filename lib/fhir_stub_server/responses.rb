@@ -31,6 +31,12 @@ module FHIRStubServer
       end
     end
 
+    # What Inferno's validator client reads: the issues of the first outcome.
+    def self.validation(issues)
+      [200, { 'content-type' => 'application/json' },
+       JSON.generate({ 'sessionId' => 'stub', 'outcomes' => [{ 'issues' => issues }] })]
+    end
+
     def self.not_found(request)
       fhir(404, {
              'resourceType' => 'OperationOutcome',

@@ -1,11 +1,13 @@
 module FHIRStubServer
   VERSION: String
 
+  def self.load: (String path) -> Stub
+  def self.with_paths: (Hash[String, untyped] config, String dir) -> Hash[String, untyped]
+  def self.with_body_paths: (Array[Hash[String, untyped]] pairs, String dir) -> Array[Hash[String, untyped]]
+  def self.expand: (Hash[String, untyped] hash, String dir, *String keys) -> Hash[String, untyped]
   def self.require_gem: (String name, String needed_by) -> void
   def self.read_file: (String path) -> String
-
-
-  def self.parse_json: (String text, String where) -> untyped
+  def self.parse_file: (String path, :json | :yaml format) -> untyped
 
   # What every adapter hands to Stub#respond.
   type request = {
@@ -36,10 +38,11 @@ module FHIRStubServer
   end
 
   class Stub
-    attr_reader served: Array[Hash[Symbol, untyped]]
-    attr_reader unmatched: Array[Hash[Symbol, untyped]]
-
     def initialize: (Hash[String, untyped] config) -> void
+    def served: () -> Array[Hash[Symbol, untyped]]
+    def unmatched: () -> Array[Hash[Symbol, untyped]]
+    def context_mismatches: () -> Array[Validator::mismatch]
+    def validator?: () -> bool
     def respond: (request request) -> response
     def self.request: (raw_request raw) -> request
     def self.parse_query: (String query) -> Hash[String, Array[String]]
@@ -47,10 +50,13 @@ module FHIRStubServer
 
     @reads: Hash[String, resource]
     @pairs: Array[Pairs::pair]
+    @validator: Validator::validator?
+    @reports: { served: Array[Hash[Symbol, untyped]], unmatched: Array[Hash[Symbol, untyped]], context_mismatches: Array[Validator::mismatch] }
 
     private
 
     def answer: (request request) -> [Integer | Symbol, response]
+    def validator_answer: (request request) -> [Integer, response]?
     def pair_answer: (request request) -> [Integer, response]?
     def pair_index: (request request) -> Integer?
     def read_answer: (request request) -> [Symbol, response]?
@@ -86,6 +92,7 @@ module FHIRStubServer
     def self.raw: (Integer status, String body) -> response
     def self.searchset: (request request, Array[resource] matches, Array[resource] includes) -> String
     def self.entries: (String base_url, Array[resource] resources, String mode) -> Array[Hash[String, untyped]]
+    def self.validation: (Array[untyped] issues) -> response
     def self.not_found: (request request) -> response
   end
 
@@ -109,6 +116,17 @@ module FHIRStubServer
     def self.duplicate: (Array[located] located) -> [String, Array[located]]?
   end
 
+  module Validator
+    type key = [String?, String?]
+    type validator = { pairs: Array[[key, Array[untyped]]], expected_context: Hash[String, untyped] }
+    type mismatch = { request: request, key: String, expected: untyped, actual: untyped }
+
+    def self.load: (Hash[String, untyped] config) -> validator
+    def self.match: (validator validator, request request) -> [Integer?, Array[mismatch]]
+    def self.call: (request request) -> [key, Hash[String, untyped]]?
+    def self.key: (Hash[String, untyped] file) -> key
+    def self.mismatches: (Hash[String, untyped] expected_context, Hash[String, untyped] context, request request) -> Array[mismatch]
+  end
 
   class RackApp
     @stub: Stub
@@ -118,6 +136,22 @@ module FHIRStubServer
     def call: (Hash[String, untyped] env) -> [Integer, Hash[String, String], Array[String]]
     def base_path_for: (String path) -> [:fhir | :validator, String]?
     def self.stub_request: (Hash[String, untyped] env, :fhir | :validator role, String base_path) -> request
+  end
+
+  class Replay
+    @rack_app: RackApp
+    @unmatched: Array[Hash[Symbol, untyped]]
+    @log: IO
+    @lock: Thread::Mutex
+
+    def initialize: (Stub stub, ?IO log) -> void
+    def call: (Hash[String, untyped] env) -> [Integer, Hash[String, String], Array[String]]
+    def self.describe: (Hash[Symbol, untyped] miss) -> String
+    def self.differences: (Pairs::differences differences) -> String
+
+    private
+
+    def logging_misses: () { () -> [Integer, Hash[String, String], Array[String]] } -> [Integer, Hash[String, String], Array[String]]
   end
 
   class HTTPServer

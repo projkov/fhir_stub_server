@@ -77,7 +77,7 @@ module FHIRStubServer
     end
 
     def self.bundle_resources(path)
-      entries = FHIRStubServer.parse_json(FHIRStubServer.read_file(path), path)['entry'].to_a
+      entries = FHIRStubServer.parse_file(path, :json)['entry'].to_a
       # An entry without a resource (a delete in a transaction) adds nothing.
       entries.each_with_index.filter_map do |entry, index|
         resource = entry['resource']

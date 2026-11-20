@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Scenario replay: serves one Scenario's Stub on a random port of 127.0.0.1 until interrupted.
+require 'fhir_stub_server'
+
+abort 'Usage: fhir-stub-server <config.yml>' unless ARGV.one?
+$stdout.sync = true
+
+begin
+  FHIRStubServer.require_gem('puma', 'fhir-stub-server')
+  stub = FHIRStubServer.load(ARGV.first)
+rescue FHIRStubServer::Error => error
+  abort error.message
+end
+
+server = Puma::Server.new(FHIRStubServer::Replay.new(stub))
+server.add_tcp_listener('127.0.0.1', 0)
+thread = server.run
+base_url = "http://127.0.0.1:#{server.connected_ports.first}"
+puts "FHIR base URL: #{base_url}/fhir"
+puts "Validator base URL: #{base_url}/validator" if stub.validator?
+
+%w[INT TERM].each { |signal| trap(signal) { server.stop } }
+thread.join
