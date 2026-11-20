@@ -67,6 +67,7 @@ module FHIRStubServer
   autoload :HTTPServer, 'fhir_stub_server/http_server'
 end
 
+require_relative 'fhir_stub_server/fhir_role'
 require_relative 'fhir_stub_server/pairs'
 require_relative 'fhir_stub_server/rack_app'
 require_relative 'fhir_stub_server/replay'

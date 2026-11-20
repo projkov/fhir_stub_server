@@ -1,28 +1,31 @@
 # frozen_string_literal: true
 
 module FHIRStubServer
-  # Loads the optional `validator:` block, which answers Inferno's validator calls:
+  # Answers Inferno's validator calls from the `validator:` block, the way Stub expects of a role:
   #
   #   pairs: [{ profile: au-core-patient, resource: Patient/p1, issues: [...] }]
   #   expected_context: { sv: 4.0.1 }
   #
   # A call is matched on the profile (`filesToValidate[0].fileName` without `.json`) and the
   # `Type/id` of the file's content; `sessionId` is ignored.
-  module Validator
-    def self.load(config)
-      { pairs: config['pairs'].to_a.map { |pair| [pair.values_at('profile', 'resource'), pair['issues'].to_a] },
-        expected_context: config['expected_context'].to_h }
+  class Validator
+    def initialize(config)
+      @pairs = config['pairs'].to_a.map { |pair| [pair.values_at('profile', 'resource'), pair['issues'].to_a] }
+      @expected_context = config['expected_context'].to_h
     end
 
-    # The index of the Pair answering the request (nil: a miss) and the request's
-    # #context_mismatches entries.
-    def self.match(validator, request)
-      call = call(request)
-      return [nil, []] unless call
+    # A context mismatch is reported, but a matching Pair still answers.
+    def answer(request)
+      key, context = Validator.call(request)
+      reports = { context_mismatches: mismatches(context, request) }
+      index = pair_index(key)
+      return [index, Responses.validation(@pairs.fetch(index).last), reports] if index
 
-      key, context = call
-      [validator[:pairs].index { |pair| pair.first == key }, mismatches(validator[:expected_context], context, request)]
+      [:miss, Responses.not_found(request), { **reports, unmatched: [Validator.miss(request)] }]
     end
+
+    # No near miss: validator Pairs have no parameters to compare.
+    def self.miss(request) = { request:, nearest_pair: nil, differences: {} }
 
     # [[profile, Type/id], context] of a `POST /validate`; nil for any other request.
     def self.call(request)
@@ -39,14 +42,20 @@ module FHIRStubServer
       [file['fileName'].delete_suffix('.json'), "#{resource['resourceType']}/#{resource['id']}"]
     end
 
-    # Only the listed keys count, each compared exactly.
-    def self.mismatches(expected_context, context, request)
-      expected_context.filter_map do |key, expected|
+    private_class_method :key
+
+    private
+
+    def pair_index(key) = @pairs.index { |pair| pair.first == key }
+
+    # Only the listed keys count, each compared exactly; a request that is no validate call has none.
+    def mismatches(context, request)
+      return [] unless context
+
+      @expected_context.filter_map do |key, expected|
         actual = context[key]
         { request:, key:, expected:, actual: } unless actual == expected
       end
     end
-
-    private_class_method :call, :key, :mismatches
   end
 end

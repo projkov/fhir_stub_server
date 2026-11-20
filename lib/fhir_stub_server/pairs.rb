@@ -24,16 +24,30 @@ module FHIRStubServer
       pairs.each_with_index.map { |pair, index| build(pair, bundle, "fhir.pairs[#{index}]") }
     end
 
-    # What a request and a Pair must share to match: role, method, path, query and, for
+    # What a request and a Pair must share to match: method, path, query and, for
     # `POST .../_search`, the form body. Queries are { name => sorted values }, so order is ignored.
     def self.key(request)
       method = request[:method]
       path = request[:path]
       form = Stub.parse_query(request[:body].to_s) if method == 'POST' && path.end_with?('/_search')
-      [request[:role], method, path, request[:query], form]
+      [method, path, request[:query], form]
     end
 
-    # The Pair an unmatched request most likely meant: same role, method and path, fewest
+    # [index, response] of the first Pair matching the request; nil when none does.
+    def self.answer(pairs, request)
+      index = match(pairs, request)
+      return unless index
+
+      pair = pairs.fetch(index)
+      [index, Responses.raw(pair[:status], pair[:body].call(request))]
+    end
+
+    def self.match(pairs, request)
+      key = key(request)
+      pairs.index { |pair| pair[:key] == key }
+    end
+
+    # The Pair an unmatched request most likely meant: same method and path, fewest
     # differing parameters, the first on a tie. Differences are keyed by parameter name: expected
     # holds the Pair's values (nil: extra in the request), actual the request's (nil: missing).
     def self.near_miss(pairs, request)
@@ -41,17 +55,17 @@ module FHIRStubServer
       { nearest_pair: index, differences: differences || {} }
     end
 
-    # [index, differences] for each Pair with the request's role, method and path.
+    # [index, differences] for each Pair with the request's method and path.
     def self.candidates(pairs, key)
       pairs.each_with_index.filter_map do |pair, index|
         pair_key = pair[:key]
-        [index, differences(pair_key, key)] if pair_key.take(3) == key.take(3)
+        [index, differences(pair_key, key)] if pair_key.take(2) == key.take(2)
       end
     end
 
     # Query and form body differences in one Hash; a name differing in both keeps the form body's.
     def self.differences(pair_key, request_key)
-      diff(pair_key[3], request_key[3]).merge(diff(pair_key[4].to_h, request_key[4].to_h))
+      diff(pair_key[2], request_key[2]).merge(diff(pair_key[3].to_h, request_key[3].to_h))
     end
 
     def self.diff(expected, actual)
@@ -126,7 +140,7 @@ module FHIRStubServer
       raise Error, "#{where}: resource must yield exactly one resource, got #{results.size}"
     end
 
-    private_class_method :candidates, :differences, :diff, :build, :request, :body, :literal_body, :body_kind,
+    private_class_method :match, :candidates, :differences, :diff, :build, :request, :body, :literal_body, :body_kind,
                          :evaluate, :resources_only, :one_resource
   end
 end

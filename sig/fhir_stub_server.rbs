@@ -41,35 +41,44 @@ module FHIRStubServer
     def initialize: (Hash[String, untyped] config) -> void
     def served: () -> Array[Hash[Symbol, untyped]]
     def unmatched: () -> Array[Hash[Symbol, untyped]]
-    def context_mismatches: () -> Array[Validator::mismatch]
+    def context_mismatches: () -> Array[Hash[Symbol, untyped]]
     def validator?: () -> bool
     def respond: (request request) -> response
     def self.request: (raw_request raw) -> request
     def self.parse_query: (String query) -> Hash[String, Array[String]]
-    def self.read_path: (request request) -> String?
 
-    @reads: Hash[String, resource]
+    @validator: bool
+    @roles: { fhir: FHIRRole, validator: Validator }
+    @reports: Hash[Symbol, Array[Hash[Symbol, untyped]]]
+  end
+
+  # What a role answers a request with: what answered it (a Pair index, :demo_data or :miss),
+  # the response and the report entries to append, by report name.
+  type answer = [Integer | Symbol, response, Hash[Symbol, Array[Hash[Symbol, untyped]]]]
+
+  class FHIRRole
     @pairs: Array[Pairs::pair]
-    @validator: Validator::validator?
-    @reports: { served: Array[Hash[Symbol, untyped]], unmatched: Array[Hash[Symbol, untyped]], context_mismatches: Array[Validator::mismatch] }
+    @reads: Hash[String, resource]
+
+    def initialize: (Hash[String, untyped] config, Hash[String, resource] demo_data) -> void
+    def answer: (request request) -> answer
+    def self.read_path: (request request) -> String?
 
     private
 
-    def answer: (request request) -> [Integer | Symbol, response]
-    def validator_answer: (request request) -> [Integer, response]?
-    def pair_answer: (request request) -> [Integer, response]?
-    def pair_index: (request request) -> Integer?
     def read_answer: (request request) -> [Symbol, response]?
   end
 
   module Pairs
-    type key = [Symbol, String, String, Hash[String, Array[String]], Hash[String, Array[String]]?]
+    type key = [String, String, Hash[String, Array[String]], Hash[String, Array[String]]?]
     type pair = { key: key, status: Integer, body: ^(request) -> String }
     type differences = Hash[String, { expected: Array[String]?, actual: Array[String]? }]
 
     BODY_KINDS: Array[String]
 
     def self.load: (Array[Hash[String, untyped]] pairs, Hash[String, resource] demo_data) -> Array[pair]
+    def self.answer: (Array[pair] pairs, request request) -> [Integer, response]?
+    def self.match: (Array[pair] pairs, request request) -> Integer?
     def self.key: (request request) -> key
     def self.near_miss: (Array[pair] pairs, request request) -> { nearest_pair: Integer?, differences: differences }
     def self.candidates: (Array[pair] pairs, key key) -> Array[[Integer, differences]]
@@ -116,16 +125,23 @@ module FHIRStubServer
     def self.duplicate: (Array[located] located) -> [String, Array[located]]?
   end
 
-  module Validator
+  class Validator
     type key = [String?, String?]
-    type validator = { pairs: Array[[key, Array[untyped]]], expected_context: Hash[String, untyped] }
     type mismatch = { request: request, key: String, expected: untyped, actual: untyped }
 
-    def self.load: (Hash[String, untyped] config) -> validator
-    def self.match: (validator validator, request request) -> [Integer?, Array[mismatch]]
+    @pairs: Array[[key, Array[untyped]]]
+    @expected_context: Hash[String, untyped]
+
+    def initialize: (Hash[String, untyped] config) -> void
+    def answer: (request request) -> answer
     def self.call: (request request) -> [key, Hash[String, untyped]]?
     def self.key: (Hash[String, untyped] file) -> key
-    def self.mismatches: (Hash[String, untyped] expected_context, Hash[String, untyped] context, request request) -> Array[mismatch]
+    def self.miss: (request request) -> Hash[Symbol, untyped]
+
+    private
+
+    def pair_index: (key? key) -> Integer?
+    def mismatches: (Hash[String, untyped]? context, request request) -> Array[mismatch]
   end
 
   class RackApp
