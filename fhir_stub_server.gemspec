@@ -12,11 +12,12 @@ Gem::Specification.new do |spec|
   spec.description = 'Answers only the requests a Scenario declares, serves Demo Data from FHIR ' \
                      "packages and Bundles, selects responses with FHIRPath, stubs Inferno's validator " \
                      'and reports every unmatched request. Runs in process through WebMock or over HTTP.'
-  spec.homepage = 'https://github.com/beda-software/fhir_stub_server'
+  spec.homepage = 'https://github.com/projkov/fhir_stub_server'
   spec.license = 'Apache-2.0'
   spec.required_ruby_version = '>= 3.3.6'
-  spec.metadata['homepage_uri'] = spec.homepage
-  spec.metadata['rubygems_mfa_required'] = 'true'
+  spec.metadata = { 'homepage_uri' => spec.homepage, 'source_code_uri' => spec.homepage,
+                    'documentation_uri' => 'https://rubydoc.info/gems/fhir_stub_server',
+                    'rubygems_mfa_required' => 'true' }
 
   gemspec = File.basename(__FILE__)
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|

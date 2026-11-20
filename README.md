@@ -1,6 +1,7 @@
 # fhir_stub_server
 
 [![CI](https://github.com/projkov/fhir_stub_server/actions/workflows/ci.yml/badge.svg)](https://github.com/projkov/fhir_stub_server/actions/workflows/ci.yml)
+[API reference](https://rubydoc.info/gems/fhir_stub_server)
 
 A strict stub for the FHIR server under test and for Inferno's validator, for regression
 tests of FHIR test kits. It answers only the requests a Scenario declares, serves IG
@@ -18,7 +19,7 @@ adapters you use:
 
 ```ruby
 group :development, :test do
-  gem 'fhir_stub_server', github: 'beda-software/fhir_stub_server', ref: '<sha>'
+  gem 'fhir_stub_server', github: 'projkov/fhir_stub_server', ref: '<sha>'
   gem 'webmock' # FHIRStubServer::WebMockAdapter
   gem 'puma'    # FHIRStubServer::HTTPServer and fhir-stub-server
   gem 'rackup'  # only for `bundle exec rackup`

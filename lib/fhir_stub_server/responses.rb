@@ -2,6 +2,7 @@
 
 module FHIRStubServer
   # Builds the Rack-style [status, headers, body] responses the Stub returns.
+  # @api private
   module Responses
     CONTENT_TYPE = 'application/fhir+json'
 

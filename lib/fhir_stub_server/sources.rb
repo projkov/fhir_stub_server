@@ -3,6 +3,7 @@
 module FHIRStubServer
   # Loads Demo Data from an ordered list of Sources into one `Type/id` index; later Sources win.
   # A Source is `package: <FHIR NPM package .tgz>` or `bundle: <Bundle .json>`.
+  # @api private
   module Sources
     # Returns the index and the load-time #served entries for resources skipped for having no id.
     # Source paths are relative to `dir`.

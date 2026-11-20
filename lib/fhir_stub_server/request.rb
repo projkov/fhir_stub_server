@@ -3,6 +3,7 @@
 module FHIRStubServer
   # The request Hash Stub#respond takes, built the same way by every adapter and for every Pair,
   # and what a request and a Pair must share to match.
+  # @api private
   module Request
     # Turns the raw values an adapter reads (query and body as strings) into a request: path
     # percent-decoded, query as { name => sorted values } (repeats kept, order ignored), the body

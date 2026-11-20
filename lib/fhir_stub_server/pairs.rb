@@ -15,6 +15,7 @@ module FHIRStubServer
   # `query` and `body` map names to a value or a list of values. `body` is the form body and
   # only counts for `POST .../_search`; other writes match whatever body they send.
   # When several Pairs match a request, the first one answers.
+  # @api private
   module Pairs
     BODY_KINDS = %w[body_file select resource].freeze
 

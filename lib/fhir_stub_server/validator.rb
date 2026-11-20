@@ -8,6 +8,7 @@ module FHIRStubServer
   #
   # A call is matched on the profile (`filesToValidate[0].fileName` without `.json`) and the
   # `Type/id` of the file's content; `sessionId` is ignored.
+  # @api private
   class Validator
     def initialize(config)
       @pairs = config['pairs'].to_a.map { |pair| [pair.values_at('profile', 'resource'), pair['issues'].to_a] }
