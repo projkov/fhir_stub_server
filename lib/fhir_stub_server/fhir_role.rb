@@ -15,7 +15,8 @@ module FHIRStubServer
       found = Pairs.answer(@pairs, request) || read_answer(request)
       return [found[0], found[1], {}] if found
 
-      [:miss, Responses.not_found(request), { unmatched: [{ request:, **Pairs.near_miss(@pairs, request) }] }]
+      miss = { request:, **Pairs.near_miss(@pairs, request), suggested_request: Pairs.suggested_request(request) }
+      [:miss, Responses.not_found(request), { unmatched: [miss] }]
     end
 
     # The path of a GET without query parameters, which a built-in read may answer; nil for

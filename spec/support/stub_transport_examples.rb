@@ -77,8 +77,8 @@ RSpec.shared_examples 'a Stub transport' do
     expect(response.code).to eq('404')
     expect(JSON.parse(response.body)).to include('resourceType' => 'OperationOutcome')
     query = { 'code' => ['8867-4'], 'date' => %w[ge2020 le2021] }
-    expect(stub.unmatched).to match([{ request: include(path: '/Observation', query:),
-                                       nearest_pair: nil, differences: {} }])
+    expect(stub.unmatched).to match([include(request: include(path: '/Observation', query:),
+                                             nearest_pair: nil, differences: {})])
     expect(stub.served).to match([include(answered_by: :miss)])
   end
 
@@ -95,7 +95,7 @@ RSpec.shared_examples 'a Stub transport' do
 
       differences = { '_count' => { expected: nil, actual: ['10'] },
                       'patient' => { expected: ['p1'], actual: ['p2'] } }
-      expect(stub.unmatched).to match([{ request: include(path: '/Observation'), nearest_pair: 1, differences: }])
+      expect(stub.unmatched).to match([include(request: include(path: '/Observation'), nearest_pair: 1, differences:)])
     end
   end
 
@@ -129,10 +129,13 @@ RSpec.shared_examples 'a Stub transport' do
       expect(stub.unmatched).to be_empty
     end
 
-    it 'does not match a different form body, raw UTF-8 included' do
+    it 'does not match a different form body, raw UTF-8 included, and suggests the Pair request' do
       expect(post_form('/Patient/_search', 'family=Müller&given=John&given=Jo').code).to eq('404')
+      suggested_request = { 'method' => 'POST', 'path' => '/Patient/_search',
+                            'body' => { 'family' => 'Müller', 'given' => %w[Jo John] } }
       expect(stub.unmatched).to match([{ request: include(body: 'family=Müller&given=John&given=Jo'), nearest_pair: 0,
-                                         differences: { 'family' => { expected: ['Smith'], actual: ['Müller'] } } }])
+                                         differences: { 'family' => { expected: ['Smith'], actual: ['Müller'] } },
+                                         suggested_request: }])
     end
   end
 
@@ -189,7 +192,9 @@ RSpec.shared_examples 'a Stub transport' do
       response = validate('other-profile', patient, 'cliContext' => { 'sv' => '4.0.1', 'txServer' => 'n/a' })
 
       expect(response.code).to eq('404')
-      expect(stub.unmatched).to match([include(request: include(role: :validator, path: '/validate'))])
+      expect(stub.unmatched).to match([include(request: include(role: :validator, path: '/validate'),
+                                               suggested_request: { 'profile' => 'other-profile',
+                                                                    'resource' => 'Patient/p1' })])
       expect(stub.context_mismatches).to be_empty
     end
   end

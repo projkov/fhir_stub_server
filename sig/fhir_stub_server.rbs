@@ -75,6 +75,8 @@ module FHIRStubServer
     def self.answer: (Array[pair] pairs, request request) -> [Integer, response]?
     def self.match: (Array[pair] pairs, request request) -> Integer?
     def self.near_miss: (Array[pair] pairs, request request) -> { nearest_pair: Integer?, differences: differences }
+    def self.suggested_request: (request request) -> Hash[String, untyped]
+    def self.config_values: (Hash[String, Array[String]]? params) -> Hash[String, String | Array[String]]?
     def self.candidates: (Array[pair] pairs, Request::key key) -> Array[[Integer, differences]]
     def self.differences: (Request::key pair_key, Request::key request_key) -> differences
     def self.diff: (Hash[String, Array[String]] expected, Hash[String, Array[String]] actual) -> differences
@@ -139,7 +141,7 @@ module FHIRStubServer
     def answer: (request request) -> answer
     def self.call: (request request) -> [key, Hash[String, untyped]]?
     def self.key: (Hash[String, untyped] file) -> key
-    def self.miss: (request request) -> Hash[Symbol, untyped]
+    def self.miss: (request request, key? key) -> Hash[Symbol, untyped]
 
     private
 

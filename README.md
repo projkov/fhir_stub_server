@@ -116,10 +116,14 @@ used.
 
 After a run, each in arrival order and the same for both adapters:
 
-- `stub.unmatched`: `{ request:, nearest_pair:, differences: }` per unanswered request.
-  `nearest_pair` is the index of the Pair with the same method and path and the fewest
-  differing parameters; `differences` maps each differing parameter to
+- `stub.unmatched`: `{ request:, nearest_pair:, differences:, suggested_request: }` per
+  unanswered request. `nearest_pair` is the index of the Pair with the same method and path
+  and the fewest differing parameters; `differences` maps each differing parameter to
   `{ expected:, actual: }` (`nil` for a parameter missing on one side).
+  `suggested_request` is what to paste as the `request` of a new Pair, as the config
+  writes it: `method` only when not GET, `path`, `query` and, for `POST .../_search`, the
+  form `body`, a single value unwrapped. For a validator miss it is `{ 'profile' =>,
+  'resource' => }` (add `issues`), or `nil` when the request is no validate call.
 - `stub.context_mismatches`: `{ request:, key:, expected:, actual: }`.
 - `stub.served`: `{ kind: :load, skipped:, reason: }` for each skipped resource, then
   `{ kind: :request, request:, answered_by: }` per request, `answered_by` being the

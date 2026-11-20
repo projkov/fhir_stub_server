@@ -53,6 +53,20 @@ module FHIRStubServer
       { nearest_pair: index, differences: differences || {} }
     end
 
+    # The `request` of a Pair that would match the request, as written in the config: `method`
+    # only when not GET, a single value unwrapped, the form `body` only for `POST .../_search`.
+    def self.suggested_request(request)
+      key = Request.key(request)
+      method = key[:method]
+      { 'method' => (method unless method == 'GET'), 'path' => key[:path],
+        'query' => config_values(key[:query]), 'body' => config_values(key[:form]) }.compact
+    end
+
+    def self.config_values(params)
+      params = params.to_h
+      params.transform_values { |values| values.one? ? values.first : values } unless params.empty?
+    end
+
     # [index, differences] for each Pair with the request's method and path.
     def self.candidates(pairs, key)
       pairs.each_with_index.filter_map do |pair, index|
@@ -138,7 +152,7 @@ module FHIRStubServer
       raise Error, "#{where}: resource must yield exactly one resource, got #{results.size}"
     end
 
-    private_class_method :with_dir, :match, :candidates, :differences, :diff, :build, :request, :body,
+    private_class_method :with_dir, :match, :config_values, :candidates, :differences, :diff, :build, :request, :body,
                          :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
   end
 end

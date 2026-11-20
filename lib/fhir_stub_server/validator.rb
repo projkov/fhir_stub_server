@@ -21,11 +21,14 @@ module FHIRStubServer
       index = pair_index(key)
       return [index, Responses.validation(@pairs.fetch(index).last), reports] if index
 
-      [:miss, Responses.not_found(request), { **reports, unmatched: [Validator.miss(request)] }]
+      [:miss, Responses.not_found(request), { **reports, unmatched: [Validator.miss(request, key)] }]
     end
 
-    # No near miss: validator Pairs have no parameters to compare.
-    def self.miss(request) = { request:, nearest_pair: nil, differences: {} }
+    # No near miss: validator Pairs have no parameters to compare. The suggestion is the Pair
+    # without its `issues`; nil when the request is no validate call.
+    def self.miss(request, key)
+      { request:, nearest_pair: nil, differences: {}, suggested_request: key && %w[profile resource].zip(key).to_h }
+    end
 
     # [[profile, Type/id], context] of a `POST /validate`; nil for any other request.
     def self.call(request)
