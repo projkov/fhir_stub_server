@@ -137,7 +137,7 @@ stub = FHIRStubServer.load('spec/fixtures/scenario.yml')
 FHIRStubServer::WebMockAdapter.install(stub, fhir_base_url: 'http://fhir.stub.test/fhir',
                                              validator_base_url: 'http://validator.stub.test')
 # run the suite against http://fhir.stub.test/fhir, then:
-expect(stub.unmatched).to be_empty
+expect(stub.unmatched).to be_empty, stub.unmatched_report
 ```
 
 `install` registers one catch-all WebMock stub per base URL. Requests outside them
@@ -182,6 +182,39 @@ STUB_SERVER_CONFIG=spec/fixtures/scenario.yml bundle exec rackup "$(bundle info 
 
 Both log load-time skips at start and each unmatched request with its nearest Pair and
 differences; nothing fails on a miss.
+
+## Working with LLM agents
+
+An agent maintaining a kit's Scenarios works in a loop:
+
+1. Run the kit's specs. Assert with `expect(stub.unmatched).to be_empty, stub.unmatched_report`:
+   a failure then lists one line per request the Stub could not answer, with its nearest
+   Pair, the differences and a suggested request:
+
+   ```text
+   Unmatched fhir GET /Observation?_count=10&code=8867-4&patient=p2; nearest fhir.pairs[1]: _count expected nil, got ["10"]; patient expected ["p1"], got ["p2"]; request: {"path":"/Observation","query":{"_count":"10","code":"8867-4","patient":"p2"}}
+   ```
+
+2. Decide for each line whether the kit changed on purpose or regressed. A regression is
+   fixed in the kit, never by declaring the request: the Stub is strict so that drift shows.
+3. For an intended request, paste the JSON after `request:` into `fhir.pairs` as
+   `- request: <JSON>` (JSON is valid YAML) and write its `response`. A validator line ends
+   with `pair: <JSON>`: paste it into `validator.pairs` as `- <JSON>` and add `issues`.
+4. Rerun until the report is empty; check `stub.context_mismatches` too.
+
+Pitfalls:
+
+- Quote dates and times in the YAML (`birthdate: '1970-01-01'`).
+- Built-in reads (`GET /<Type>/<id>`, `GET /metadata`) answer only without query
+  parameters; a read that sends one needs a Pair.
+- When several Pairs match a request, the first answers, and a Pair wins over Demo Data.
+- `package`, `bundle` and `body_file` paths are relative to the config file.
+
+To point a kit's own agents here, add a line to its `AGENTS.md`:
+
+```markdown
+- Stub configs use fhir_stub_server: read "Working with LLM agents" in its README (`bundle info --path fhir_stub_server`) before changing them.
+```
 
 ## Development
 
