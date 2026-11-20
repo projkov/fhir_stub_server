@@ -227,6 +227,18 @@ bundle exec rake # specs, then rubocop, reek, flay, flog and steep
 CI runs the same `bundle exec rake` on Ruby 3.3 and 4.0 for every push to `main` and every
 pull request.
 
+To release:
+
+1. Set `VERSION` in `lib/fhir_stub_server/version.rb`, run `bundle install` to update
+   `Gemfile.lock`, and rename `## [Unreleased]` in `CHANGELOG.md` to
+   `## [<VERSION>] - <date>` above a new, empty `## [Unreleased]`. Commit and push.
+2. Publish a GitHub release tagged `v<VERSION>` whose notes link to that `CHANGELOG.md`
+   section. The Release workflow checks the tag and the changelog, runs `bundle exec rake`
+   and pushes the gem to RubyGems through trusted publishing.
+
+Whether RubyGems treats it as a prerelease depends on `VERSION` (`0.2.0.rc1`), not on
+GitHub's pre-release checkbox.
+
 ## License
 
 Apache-2.0. See [LICENSE.txt](LICENSE.txt).

@@ -1,0 +1,37 @@
+name: Release
+
+# Publishes the gem to RubyGems when a GitHub release is published. RubyGems trusts this
+# workflow in the `release` environment (trusted publishing), so no API key is stored.
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Check the tag and CHANGELOG.md against VERSION
+        run: |
+          version=$(ruby -Ilib -e 'require "fhir_stub_server/version"; print FHIRStubServer::VERSION')
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Release tag $GITHUB_REF_NAME is not v$version (lib/fhir_stub_server/version.rb)"
+            exit 1
+          fi
+          if ! grep -qF "## [$version]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no ## [$version] section"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: bundle exec rake
+      - uses: rubygems/configure-rubygems-credentials@v1
+      - run: gem build fhir_stub_server.gemspec
+      - run: gem push "fhir_stub_server-$VERSION.gem"
