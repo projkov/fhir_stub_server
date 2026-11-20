@@ -16,7 +16,7 @@ module FHIRStubServer
     body: String?
   }
 
-  # What an adapter reads off its transport, before Stub.request normalizes it.
+  # What an adapter reads off its transport, before Request.build normalizes it.
   type raw_request = {
     role: :fhir | :validator,
     method: String,
@@ -41,8 +41,6 @@ module FHIRStubServer
     def context_mismatches: () -> Array[Hash[Symbol, untyped]]
     def validator?: () -> bool
     def respond: (request request) -> response
-    def self.request: (raw_request raw) -> request
-    def self.parse_query: (String query) -> Hash[String, Array[String]]
 
     @validator: bool
     @roles: { fhir: FHIRRole, validator: Validator }
@@ -67,8 +65,7 @@ module FHIRStubServer
   end
 
   module Pairs
-    type key = [String, String, Hash[String, Array[String]], Hash[String, Array[String]]?]
-    type pair = { key: key, status: Integer, body: ^(request) -> String }
+    type pair = { key: Request::key, status: Integer, body: ^(request) -> String }
     type differences = Hash[String, { expected: Array[String]?, actual: Array[String]? }]
 
     BODY_KINDS: Array[String]
@@ -77,10 +74,9 @@ module FHIRStubServer
     def self.with_dir: (Hash[String, untyped] pair, String dir) -> Hash[String, untyped]
     def self.answer: (Array[pair] pairs, request request) -> [Integer, response]?
     def self.match: (Array[pair] pairs, request request) -> Integer?
-    def self.key: (request request) -> key
     def self.near_miss: (Array[pair] pairs, request request) -> { nearest_pair: Integer?, differences: differences }
-    def self.candidates: (Array[pair] pairs, key key) -> Array[[Integer, differences]]
-    def self.differences: (key pair_key, key request_key) -> differences
+    def self.candidates: (Array[pair] pairs, Request::key key) -> Array[[Integer, differences]]
+    def self.differences: (Request::key pair_key, Request::key request_key) -> differences
     def self.diff: (Hash[String, Array[String]] expected, Hash[String, Array[String]] actual) -> differences
     def self.build: (Hash[String, untyped] pair, resource bundle, String where) -> pair
     def self.request: (Hash[String, untyped] config, String where) -> request
@@ -90,6 +86,15 @@ module FHIRStubServer
     def self.evaluate: (String? expression, resource bundle, String where) -> Array[resource]
     def self.resources_only: (Array[untyped] results, String label) -> Array[resource]
     def self.one_resource: (Array[resource] results, String where) -> resource
+  end
+
+  module Request
+    # What a request and a Pair must share to match; queries are { name => sorted values }.
+    type key = { method: String, path: String, query: Hash[String, Array[String]], form: Hash[String, Array[String]]? }
+
+    def self.build: (raw_request raw) -> request
+    def self.parse_query: (String query) -> Hash[String, Array[String]]
+    def self.key: (request request) -> key
   end
 
   module Responses

@@ -26,7 +26,7 @@ module FHIRStubServer
 
     def self.stub_request(env, role, base_path)
       host = env['HTTP_HOST'] || "#{env['SERVER_NAME']}:#{env['SERVER_PORT']}"
-      Stub.request(
+      Request.build(
         role:, method: env['REQUEST_METHOD'],
         base_url: "#{env['rack.url_scheme']}://#{host}#{env['SCRIPT_NAME']}#{base_path}",
         path: env['PATH_INFO'].delete_prefix(base_path),

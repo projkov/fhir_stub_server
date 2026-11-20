@@ -26,7 +26,7 @@ module FHIRStubServer
 
     def self.stub_request(request, role, base_url)
       uri = request.uri
-      Stub.request(
+      Request.build(
         role:, method: request.method.to_s.upcase, base_url:,
         path: uri.path.delete_prefix(URI(base_url).path),
         query: uri.query.to_s,

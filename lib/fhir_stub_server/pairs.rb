@@ -31,15 +31,6 @@ module FHIRStubServer
       file ? pair.merge('response' => response.merge('body_file' => File.expand_path(file, dir))) : pair
     end
 
-    # What a request and a Pair must share to match: method, path, query and, for
-    # `POST .../_search`, the form body. Queries are { name => sorted values }, so order is ignored.
-    def self.key(request)
-      method = request[:method]
-      path = request[:path]
-      form = Stub.parse_query(request[:body].to_s) if method == 'POST' && path.end_with?('/_search')
-      [method, path, request[:query], form]
-    end
-
     # [index, response] of the first Pair matching the request; nil when none does.
     def self.answer(pairs, request)
       index = match(pairs, request)
@@ -50,7 +41,7 @@ module FHIRStubServer
     end
 
     def self.match(pairs, request)
-      key = key(request)
+      key = Request.key(request)
       pairs.index { |pair| pair[:key] == key }
     end
 
@@ -58,7 +49,7 @@ module FHIRStubServer
     # differing parameters, the first on a tie. Differences are keyed by parameter name: expected
     # holds the Pair's values (nil: extra in the request), actual the request's (nil: missing).
     def self.near_miss(pairs, request)
-      index, differences = candidates(pairs, key(request)).min_by { |candidate| candidate.last.size }
+      index, differences = candidates(pairs, Request.key(request)).min_by { |candidate| candidate.last.size }
       { nearest_pair: index, differences: differences || {} }
     end
 
@@ -66,13 +57,13 @@ module FHIRStubServer
     def self.candidates(pairs, key)
       pairs.each_with_index.filter_map do |pair, index|
         pair_key = pair[:key]
-        [index, differences(pair_key, key)] if pair_key.take(2) == key.take(2)
+        [index, differences(pair_key, key)] if pair_key.slice(:method, :path) == key.slice(:method, :path)
       end
     end
 
     # Query and form body differences in one Hash; a name differing in both keeps the form body's.
     def self.differences(pair_key, request_key)
-      diff(pair_key[2], request_key[2]).merge(diff(pair_key[3].to_h, request_key[3].to_h))
+      diff(pair_key[:query], request_key[:query]).merge(diff(pair_key[:form].to_h, request_key[:form].to_h))
     end
 
     def self.diff(expected, actual)
@@ -84,7 +75,7 @@ module FHIRStubServer
 
     def self.build(pair, bundle, where)
       response = pair['response'].to_h
-      { key: key(request(pair['request'].to_h, where)), status: response.fetch('status', 200),
+      { key: Request.key(request(pair['request'].to_h, where)), status: response.fetch('status', 200),
         body: body(response, bundle, where) }
     end
 
@@ -93,7 +84,7 @@ module FHIRStubServer
       path = config['path'].to_s
       raise Error, "#{where}: the request needs a path starting with /" unless path.start_with?('/')
 
-      Stub.request(
+      Request.build(
         role: :fhir, method: config.fetch('method', 'GET').upcase, base_url: '', path:,
         query: URI.encode_www_form(config['query'].to_h), body: URI.encode_www_form(config['body'].to_h)
       )
