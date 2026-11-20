@@ -6,9 +6,6 @@ examples as Demo Data without copying them, and reports every request it could n
 answer with a diff against the nearest declared one. It behaves the same in the rspec
 process (through WebMock) and over HTTP (for a child `inferno execute` process).
 
-[fhirsnake](https://github.com/beda-software/fhirsnake) is a fake for building apps;
-`fhir_stub_server` is a strict stub for regression-testing FHIR test kits.
-
 It is IG-agnostic: it knows FHIR packages, Bundles and FHIRPath, nothing about a
 specific IG.
 
