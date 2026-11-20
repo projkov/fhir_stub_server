@@ -18,7 +18,7 @@ module FHIRStubServer
     def respond(request)
       answered_by, response = answer(request)
       @served << { kind: :request, request:, answered_by: }
-      @unmatched << { request: } if answered_by == :miss
+      @unmatched << { request:, **Pairs.near_miss(@pairs, request) } if answered_by == :miss
       response
     end
 

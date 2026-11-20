@@ -61,8 +61,26 @@ RSpec.shared_examples 'a Stub transport' do
     expect(response.code).to eq('404')
     expect(JSON.parse(response.body)).to include('resourceType' => 'OperationOutcome')
     query = { 'code' => ['8867-4'], 'date' => %w[ge2020 le2021] }
-    expect(stub.unmatched).to match([{ request: include(path: '/Observation', query:) }])
+    expect(stub.unmatched).to match([{ request: include(path: '/Observation', query:),
+                                       nearest_pair: nil, differences: {} }])
     expect(stub.served).to match([include(answered_by: :miss)])
+  end
+
+  context 'with Pairs on the path of a request that matches none of them' do
+    let(:pairs) do
+      [{ 'patient' => 'p1' }, { 'patient' => 'p1', 'code' => '8867-4' }].map do |query|
+        { 'request' => { 'path' => '/Observation', 'query' => query },
+          'response' => { 'body_file' => fixture('smith_searchset.json') } }
+      end
+    end
+
+    it 'reports the Pair with the fewest differences and those differences' do
+      get('/Observation?code=8867-4&patient=p2&_count=10')
+
+      differences = { '_count' => { expected: nil, actual: ['10'] },
+                      'patient' => { expected: ['p1'], actual: ['p2'] } }
+      expect(stub.unmatched).to match([{ request: include(path: '/Observation'), nearest_pair: 1, differences: }])
+    end
   end
 
   context 'with a Pair for a request Demo Data could answer' do
@@ -97,7 +115,8 @@ RSpec.shared_examples 'a Stub transport' do
 
     it 'does not match a different form body, raw UTF-8 included' do
       expect(post_form('/Patient/_search', 'family=Müller&given=John&given=Jo').code).to eq('404')
-      expect(stub.unmatched).to match([{ request: include(body: 'family=Müller&given=John&given=Jo') }])
+      expect(stub.unmatched).to match([{ request: include(body: 'family=Müller&given=John&given=Jo'), nearest_pair: 0,
+                                         differences: { 'family' => { expected: ['Smith'], actual: ['Müller'] } } }])
     end
   end
 

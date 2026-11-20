@@ -59,11 +59,16 @@ module FHIRStubServer
   module Pairs
     type key = [Symbol, String, String, Hash[String, Array[String]], Hash[String, Array[String]]?]
     type pair = { key: key, status: Integer, body: ^(request) -> String }
+    type differences = Hash[String, { expected: Array[String]?, actual: Array[String]? }]
 
     BODY_KINDS: Array[String]
 
     def self.load: (Array[Hash[String, untyped]] pairs, Hash[String, resource] demo_data) -> Array[pair]
     def self.key: (request request) -> key
+    def self.near_miss: (Array[pair] pairs, request request) -> { nearest_pair: Integer?, differences: differences }
+    def self.candidates: (Array[pair] pairs, key key) -> Array[[Integer, differences]]
+    def self.differences: (key pair_key, key request_key) -> differences
+    def self.diff: (Hash[String, Array[String]] expected, Hash[String, Array[String]] actual) -> differences
     def self.build: (Hash[String, untyped] pair, resource bundle, String where) -> pair
     def self.request: (Hash[String, untyped] config, String where) -> request
     def self.body: (Hash[String, untyped] config, resource bundle, String where) -> ^(request) -> String

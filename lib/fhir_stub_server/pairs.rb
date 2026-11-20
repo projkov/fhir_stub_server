@@ -33,6 +33,34 @@ module FHIRStubServer
       [request[:role], method, path, request[:query], form]
     end
 
+    # The Pair an unmatched request most likely meant: same role, method and path, fewest
+    # differing parameters, the first on a tie. Differences are keyed by parameter name: expected
+    # holds the Pair's values (nil: extra in the request), actual the request's (nil: missing).
+    def self.near_miss(pairs, request)
+      index, differences = candidates(pairs, key(request)).min_by { |candidate| candidate.last.size }
+      { nearest_pair: index, differences: differences || {} }
+    end
+
+    # [index, differences] for each Pair with the request's role, method and path.
+    def self.candidates(pairs, key)
+      pairs.each_with_index.filter_map do |pair, index|
+        pair_key = pair[:key]
+        [index, differences(pair_key, key)] if pair_key.take(3) == key.take(3)
+      end
+    end
+
+    # Query and form body differences in one Hash; a name differing in both keeps the form body's.
+    def self.differences(pair_key, request_key)
+      diff(pair_key[3], request_key[3]).merge(diff(pair_key[4].to_h, request_key[4].to_h))
+    end
+
+    def self.diff(expected, actual)
+      (expected.keys | actual.keys).sort.filter_map do |name|
+        values = { expected: expected[name], actual: actual[name] }
+        [name, values] unless values[:expected] == values[:actual]
+      end.to_h
+    end
+
     def self.build(pair, bundle, where)
       response = pair['response'].to_h
       { key: key(request(pair['request'].to_h, where)), status: response.fetch('status', 200),
@@ -98,6 +126,7 @@ module FHIRStubServer
       raise Error, "#{where}: resource must yield exactly one resource, got #{results.size}"
     end
 
-    private_class_method :build, :request, :body, :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
+    private_class_method :candidates, :differences, :diff, :build, :request, :body, :literal_body, :body_kind,
+                         :evaluate, :resources_only, :one_resource
   end
 end
