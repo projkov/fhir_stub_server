@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
-        f.start_with?(*%w[bin/ spec/ docs/ sig/external/ Gemfile .gitignore .rspec .kata.toml AGENTS.md])
+        f.start_with?(*%w[bin/ spec/ docs/ sig/external/ .github/ Gemfile .gitignore .rspec .kata.toml AGENTS.md])
     end
   end
   spec.bindir = 'exe'

@@ -1,5 +1,7 @@
 # fhir_stub_server
 
+[![CI](https://github.com/projkov/fhir_stub_server/actions/workflows/ci.yml/badge.svg)](https://github.com/projkov/fhir_stub_server/actions/workflows/ci.yml)
+
 A strict stub for the FHIR server under test and for Inferno's validator, for regression
 tests of FHIR test kits. It answers only the requests a Scenario declares, serves IG
 examples as Demo Data without copying them, and reports every request it could not
@@ -183,6 +185,9 @@ differences; nothing fails on a miss.
 bin/setup
 bundle exec rake # specs, then rubocop, reek, flay, flog and steep
 ```
+
+CI runs the same `bundle exec rake` on Ruby 3.3 and 4.0 for every push to `main` and every
+pull request.
 
 ## License
 
