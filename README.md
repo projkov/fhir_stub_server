@@ -19,12 +19,15 @@ adapters you use:
 
 ```ruby
 group :development, :test do
-  gem 'fhir_stub_server', github: 'projkov/fhir_stub_server', ref: '<sha>'
+  gem 'fhir_stub_server', '~> 0.1'
   gem 'webmock' # FHIRStubServer::WebMockAdapter
   gem 'puma'    # FHIRStubServer::HTTPServer and fhir-stub-server
   gem 'rackup'  # only for `bundle exec rackup`
 end
 ```
+
+For changes not released yet, use
+`gem 'fhir_stub_server', github: 'projkov/fhir_stub_server', ref: '<sha>'` instead.
 
 The core needs only `fhirpath-rb`. An adapter whose gem is missing raises a
 `FHIRStubServer::Error` naming it. To work on the kit and this gem together:
