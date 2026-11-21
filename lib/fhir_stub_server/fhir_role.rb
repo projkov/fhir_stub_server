@@ -20,6 +20,9 @@ module FHIRStubServer
       [:miss, Responses.not_found(request), { unmatched: [miss] }]
     end
 
+    # One entry per Pair, in config order, for Stub#unused_pairs.
+    def pairs = Pairs.listed(@pairs)
+
     # The path of a GET without query parameters, which a built-in read may answer; nil for
     # anything else, so a read that gains a parameter is a miss unless a Pair declares it.
     def self.read_path(request)

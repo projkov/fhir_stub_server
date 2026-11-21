@@ -120,6 +120,26 @@ RSpec.shared_examples 'a Stub transport' do
     end
   end
 
+  context 'with FHIR and validator Pairs from shared files' do
+    let(:pairs) { [{ 'from' => 'shared/pairs.yml' }] }
+    let(:validator) { { 'pairs' => [{ 'from' => 'shared/validator.yml' }] } }
+
+    it 'reports the Pairs no request used, in config order, also as one line each' do
+      get('/Patient/p1')
+
+      observations = 'fhir.pairs[0] (shared/pairs.yml[1] > shared/nested/observations.yml[0])'
+      expect(stub.unused_pairs).to eq(
+        [{ role: :fhir, pair: observations, request: { 'path' => '/Observation', 'query' => { 'patient' => 'p1' } } },
+         { role: :validator, pair: 'validator.pairs[0] (shared/validator.yml[0])',
+           request: { 'profile' => 'example-patient', 'resource' => 'Patient/p1' } }]
+      )
+      expect(stub.unused_pairs_report).to eq(
+        "Unused #{observations}: {\"path\":\"/Observation\",\"query\":{\"patient\":\"p1\"}}\n" \
+        'Unused validator.pairs[0] (shared/validator.yml[0]): {"profile":"example-patient","resource":"Patient/p1"}'
+      )
+    end
+  end
+
   context 'with a Pair for a request Demo Data could answer' do
     let(:pairs) do
       [{ 'request' => { 'path' => '/Patient/p1' },

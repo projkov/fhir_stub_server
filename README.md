@@ -158,6 +158,12 @@ After a run, each in arrival order and the same for both adapters:
   `{ kind: :request, request:, answered_by: }` per request, `answered_by` naming the
   answering Pair, or `:demo_data` or `:miss`.
 
+`stub.unused_pairs` lists, in config order (`fhir.pairs`, then `validator.pairs`), the
+Pairs no request was answered by: `{ role:, pair:, request: }`, `pair` naming where it
+is written and `request` the request it matches, shaped like a `suggested_request`
+(`{ 'profile' =>, 'resource' => }` for a validator Pair). As a kit changes, Pairs stop being requested;
+assert `expect(stub.unused_pairs).to be_empty, stub.unused_pairs_report` to notice.
+
 ## In process: WebMock
 
 ```ruby
@@ -166,6 +172,7 @@ FHIRStubServer::WebMockAdapter.install(stub, fhir_base_url: 'http://fhir.stub.te
                                              validator_base_url: 'http://validator.stub.test')
 # run the suite against http://fhir.stub.test/fhir, then:
 expect(stub.unmatched).to be_empty, stub.unmatched_report
+expect(stub.unused_pairs).to be_empty, stub.unused_pairs_report
 ```
 
 `install` registers one catch-all WebMock stub per base URL. Requests outside them
@@ -209,7 +216,8 @@ STUB_SERVER_CONFIG=spec/fixtures/scenario.yml bundle exec rackup "$(bundle info 
 ```
 
 Both log load-time skips at start and each unmatched request with its nearest Pair and
-differences; nothing fails on a miss.
+differences; nothing fails on a miss. `fhir-stub-server` also logs the unused Pairs on
+shutdown.
 
 ## Working with LLM agents
 
@@ -232,6 +240,16 @@ An agent maintaining a kit's Scenarios works in a loop:
    and the change holds for every Scenario that includes it, edit the shared file;
    otherwise add the Pair to the Scenario, above the `from:` entry so that it answers first.
 4. Rerun until the report is empty; check `stub.context_mismatches` too.
+5. Assert `expect(stub.unused_pairs).to be_empty, stub.unused_pairs_report`: each line
+   names a Pair no request used and its request:
+
+   ```text
+   Unused fhir.pairs[0] (../_shared/x.yml[7]): {"path":"/Observation","query":{"patient":"p1"}}
+   ```
+
+   Remove the Pair, or fix it when the kit still sends that request in another form (an
+   `Unmatched` line then names it as the nearest Pair). Remove a Pair from a shared file
+   only when no Scenario that includes it uses it.
 
 Pitfalls:
 

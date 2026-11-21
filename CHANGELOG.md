@@ -9,6 +9,8 @@ follow [Semantic Versioning](https://semver.org/).
 
 - `- from: <path>` entries in `fhir.pairs` and `validator.pairs`: the Pairs of a shared
   YAML file, spliced in at that position, its paths relative to it.
+- `Stub#unused_pairs` and `Stub#unused_pairs_report`: the Pairs no request used, in config
+  order. `fhir-stub-server` logs them on shutdown.
 
 ### Changed
 

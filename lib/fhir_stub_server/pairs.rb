@@ -50,10 +50,17 @@ module FHIRStubServer
       { nearest_pair: where, differences: differences || {} }
     end
 
-    # The `request` of a Pair that would match the request, as written in the config: `method`
-    # only when not GET, a single value unwrapped, the form `body` only for `POST .../_search`.
-    def self.suggested_request(request)
-      key = Request.key(request)
+    # The `request` of a Pair that would match the request, as written in the config.
+    def self.suggested_request(request) = config_request(Request.key(request))
+
+    # One `{ role:, pair:, request: }` per Pair: where it is written and its request.
+    def self.listed(pairs)
+      pairs.map { |pair| { role: :fhir, pair: pair[:where], request: config_request(pair[:key]) } }
+    end
+
+    # A key as the config writes a Pair's `request`: `method` only when not GET, a single value
+    # unwrapped, the form `body` only for `POST .../_search`.
+    def self.config_request(key)
       method = key[:method]
       { 'method' => (method unless method == 'GET'), 'path' => key[:path],
         'query' => config_values(key[:query]), 'body' => config_values(key[:form]) }.compact

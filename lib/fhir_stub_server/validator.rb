@@ -27,11 +27,17 @@ module FHIRStubServer
       [:miss, Responses.not_found(request), { **reports, unmatched: [Validator.miss(request, key)] }]
     end
 
+    # One entry per Pair, in config order, for Stub#unused_pairs.
+    def pairs = @pairs.map { |key, _issues, where| { role: :validator, pair: where, request: Validator.config(key) } }
+
     # No near miss: validator Pairs have no parameters to compare. The suggestion is the Pair
     # without its `issues`; nil when the request is no validate call.
     def self.miss(request, key)
-      { request:, nearest_pair: nil, differences: {}, suggested_request: key && %w[profile resource].zip(key).to_h }
+      { request:, nearest_pair: nil, differences: {}, suggested_request: key && config(key) }
     end
+
+    # The key as the config writes a Pair, without its `issues`.
+    def self.config(key) = %w[profile resource].zip(key).to_h.compact
 
     # [[profile, Type/id], context] of a `POST /validate`; nil for any other request.
     def self.call(request)

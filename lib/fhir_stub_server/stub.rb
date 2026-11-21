@@ -22,6 +22,20 @@ module FHIRStubServer
     # a readable failure message for `expect(stub.unmatched).to be_empty, stub.unmatched_report`.
     def unmatched_report = unmatched.map { |miss| Unmatched.describe(miss) }.join("\n")
 
+    # One `{ role:, pair:, request: }` per Pair no request was answered by, in config order:
+    # `pair` names where it is written, `request` the request it matches, shaped like a
+    # `suggested_request` (for a validator Pair, its profile and resource).
+    def unused_pairs
+      used = served.to_set { |entry| entry[:answered_by] }
+      @roles.values.flat_map(&:pairs).reject { |entry| used.include?(entry[:pair]) }
+    end
+
+    # #unused_pairs as one line per Pair, empty when there is none.
+    def unused_pairs_report
+      unused_pairs.map { |entry| entry.values_at(:pair, :request) }
+                  .map { |pair, request| "Unused #{pair}: #{JSON.generate(request)}" }.join("\n")
+    end
+
     # Whether the config has a `validator:` block; without one the adapters route only the FHIR role.
     def validator? = @validator
 

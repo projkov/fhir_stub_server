@@ -14,10 +14,12 @@ rescue FHIRStubServer::Error => error
   abort error.message
 end
 
-server = FHIRStubServer::HTTPServer.new(FHIRStubServer::Replay.new(stub))
+replay = FHIRStubServer::Replay.new(stub)
+server = FHIRStubServer::HTTPServer.new(replay)
 base_url = server.start
 puts "FHIR base URL: #{base_url}/fhir"
 puts "Validator base URL: #{base_url}/validator" if stub.validator?
 
 %w[INT TERM].each { |signal| trap(signal) { server.stop } }
 server.wait
+replay.log_unused_pairs

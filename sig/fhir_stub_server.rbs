@@ -31,6 +31,9 @@ module FHIRStubServer
 
   type resource = Hash[String, untyped]
 
+  # A Pair as Stub#unused_pairs lists it: where it is written and its request as the config writes it.
+  type unused_pair = { role: :fhir | :validator, pair: String, request: Hash[String, untyped] }
+
   class Error < StandardError
   end
 
@@ -40,6 +43,8 @@ module FHIRStubServer
     def unmatched: () -> Array[Hash[Symbol, untyped]]
     def context_mismatches: () -> Array[Hash[Symbol, untyped]]
     def unmatched_report: () -> String
+    def unused_pairs: () -> Array[unused_pair]
+    def unused_pairs_report: () -> String
     def validator?: () -> bool
     def respond: (request request) -> response
 
@@ -58,6 +63,7 @@ module FHIRStubServer
 
     def initialize: (Hash[String, untyped] config, Hash[String, resource] demo_data, String dir) -> void
     def answer: (request request) -> answer
+    def pairs: () -> Array[unused_pair]
     def self.read_path: (request request) -> String?
 
     private
@@ -76,6 +82,8 @@ module FHIRStubServer
     def self.answer: (Array[pair] pairs, request request) -> [String, response]?
     def self.near_miss: (Array[pair] pairs, request request) -> { nearest_pair: String?, differences: differences }
     def self.suggested_request: (request request) -> Hash[String, untyped]
+    def self.listed: (Array[pair] pairs) -> Array[unused_pair]
+    def self.config_request: (Request::key key) -> Hash[String, untyped]
     def self.config_values: (Hash[String, Array[String]]? params) -> Hash[String, String | Array[String]]?
     def self.candidates: (Array[pair] pairs, Request::key key) -> Array[[String, differences]]
     def self.differences: (Request::key pair_key, Request::key request_key) -> differences
@@ -162,9 +170,11 @@ module FHIRStubServer
 
     def initialize: (Hash[String, untyped] config, String dir) -> void
     def answer: (request request) -> answer
+    def pairs: () -> Array[unused_pair]
     def self.call: (request request) -> [key, Hash[String, untyped]]?
     def self.key: (Hash[String, untyped] file) -> key
     def self.miss: (request request, key? key) -> Hash[Symbol, untyped]
+    def self.config: (key key) -> Hash[String, String]
 
     private
 
@@ -189,13 +199,15 @@ module FHIRStubServer
   end
 
   class Replay
+    @stub: Stub
     @rack_app: RackApp
-    @unmatched: Array[Hash[Symbol, untyped]]
     @log: IO
     @lock: Thread::Mutex
 
     def initialize: (Stub stub, ?IO log) -> void
     def call: (Hash[String, untyped] env) -> [Integer, Hash[String, String], Array[String]]
+    def log_unused_pairs: () -> void
+
     private
 
     def logging_misses: () { () -> [Integer, Hash[String, String], Array[String]] } -> [Integer, Hash[String, String], Array[String]]
