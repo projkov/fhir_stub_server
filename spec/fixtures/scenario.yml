@@ -7,3 +7,4 @@ server:
     pairs:
       - request: { path: /Patient/p1 }
         response: { status: 404, body_file: patient_gone.json }
+      - from: shared/nested/observations.yml

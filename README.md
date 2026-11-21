@@ -65,7 +65,7 @@ Every config error raises a `FHIRStubServer::Error` naming the file or Pair when
 Stub is built, never when a request arrives: a missing or invalid file, the same
 `Type/id` twice in one package, several server CapabilityStatements, a Pair response
 with zero or several body kinds, `include` without `select`, a `resource` expression
-yielding zero or several resources.
+yielding zero or several resources, an included file that is no list, an include cycle.
 
 ### Sources and Demo Data
 
@@ -100,6 +100,27 @@ A Pair is one expected request and the response configured for it.
 - Writes (`POST`, `PUT`) get their Pair's response and never change Demo Data.
 - Any other request gets a 404 OperationOutcome and is recorded in `#unmatched`.
 
+Pairs that several Scenarios share go in their own file. An entry `- from: <path>` in
+`fhir.pairs` or `validator.pairs` is replaced by the Pairs of that file, a YAML list that
+may itself have `from:` entries; paths in it (`from`, `body_file`) are relative to it.
+Only splicing: a Scenario that needs a different Pair writes its own, and the first
+matching Pair still answers.
+
+```yaml
+# scenario.yml
+fhir:
+  pairs:
+    - from: ../_shared/patient_searches.yml
+    - request: { path: /Observation }
+      response: { select: "Bundle.entry.resource.ofType(Observation)" }
+```
+
+```yaml
+# ../_shared/patient_searches.yml
+- request: { path: /Patient, query: { family: Smith } }
+  response: { body_file: smith.json } # ../_shared/smith.json
+```
+
 ### Validator
 
 The Stub can stand in for Inferno's validator wrapper. `POST /validate` is matched on
@@ -118,11 +139,15 @@ used.
 
 ## Reports
 
+Reports name a Pair by where it is written: `fhir.pairs[1]`, `validator.pairs[0]`, or,
+for a Pair from an included file, the entry that includes it and its place in each file
+along the way, paths relative to the config: `fhir.pairs[0] (../_shared/patient_searches.yml[7])`.
+
 After a run, each in arrival order and the same for both adapters:
 
 - `stub.unmatched`: `{ request:, nearest_pair:, differences:, suggested_request: }` per
-  unanswered request. `nearest_pair` is the index of the Pair with the same method and path
-  and the fewest differing parameters; `differences` maps each differing parameter to
+  unanswered request. `nearest_pair` names the Pair with the same method and path and the
+  fewest differing parameters; `differences` maps each differing parameter to
   `{ expected:, actual: }` (`nil` for a parameter missing on one side).
   `suggested_request` is what to paste as the `request` of a new Pair, as the config
   writes it: `method` only when not GET, `path`, `query` and, for `POST .../_search`, the
@@ -130,9 +155,8 @@ After a run, each in arrival order and the same for both adapters:
   'resource' => }` (add `issues`), or `nil` when the request is no validate call.
 - `stub.context_mismatches`: `{ request:, key:, expected:, actual: }`.
 - `stub.served`: `{ kind: :load, skipped:, reason: }` for each skipped resource, then
-  `{ kind: :request, request:, answered_by: }` per request, `answered_by` being the
-  index of the answering Pair (in `fhir.pairs` or `validator.pairs`), `:demo_data` or
-  `:miss`.
+  `{ kind: :request, request:, answered_by: }` per request, `answered_by` naming the
+  answering Pair, or `:demo_data` or `:miss`.
 
 ## In process: WebMock
 
@@ -204,6 +228,9 @@ An agent maintaining a kit's Scenarios works in a loop:
 3. For an intended request, paste the JSON after `request:` into `fhir.pairs` as
    `- request: <JSON>` (JSON is valid YAML) and write its `response`. A validator line ends
    with `pair: <JSON>`: paste it into `validator.pairs` as `- <JSON>` and add `issues`.
+   When the nearest Pair is in a shared file (`nearest fhir.pairs[0] (../_shared/x.yml[7])`)
+   and the change holds for every Scenario that includes it, edit the shared file;
+   otherwise add the Pair to the Scenario, above the `from:` entry so that it answers first.
 4. Rerun until the report is empty; check `stub.context_mismatches` too.
 
 Pitfalls:
@@ -212,7 +239,7 @@ Pitfalls:
 - Built-in reads (`GET /<Type>/<id>`, `GET /metadata`) answer only without query
   parameters; a read that sends one needs a Pair.
 - When several Pairs match a request, the first answers, and a Pair wins over Demo Data.
-- `package`, `bundle` and `body_file` paths are relative to the config file.
+- `package`, `bundle`, `body_file` and `from` paths are relative to the file that names them.
 
 To point a kit's own agents here, add a line to its `AGENTS.md`:
 

@@ -10,7 +10,7 @@ module FHIRStubServer
       demo_data, served = Sources.load(fhir['sources'].to_a, dir)
       validator = config['validator']
       @validator = validator ? true : false
-      @roles = { fhir: FHIRRole.new(fhir, demo_data, dir), validator: Validator.new(validator.to_h) }
+      @roles = { fhir: FHIRRole.new(fhir, demo_data, dir), validator: Validator.new(validator.to_h, dir) }
       @reports = { served:, unmatched: [], context_mismatches: [] }
     end
 
@@ -25,9 +25,9 @@ module FHIRStubServer
     # Whether the config has a `validator:` block; without one the adapters route only the FHIR role.
     def validator? = @validator
 
-    # #served starts with the load-time entries; each request adds `answered_by`: the index of
-    # the Pair that answered (in `fhir.pairs` or `validator.pairs`, by the request's role),
-    # :demo_data or :miss. The role builds the report entries; Stub only appends them.
+    # #served starts with the load-time entries; each request adds `answered_by`: where the
+    # answering Pair is written (see Includes), :demo_data or :miss. The role builds the report
+    # entries; Stub only appends them.
     def respond(request)
       answered_by, response, reports = @roles.fetch(request[:role]).answer(request)
       served << { kind: :request, request:, answered_by: }

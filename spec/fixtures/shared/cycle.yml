@@ -1,0 +1,2 @@
+# Includes itself: a config error.
+- from: cycle.yml

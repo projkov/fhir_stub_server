@@ -7,11 +7,13 @@ module FHIRStubServer
   #   expected_context: { sv: 4.0.1 }
   #
   # A call is matched on the profile (`filesToValidate[0].fileName` without `.json`) and the
-  # `Type/id` of the file's content; `sessionId` is ignored.
+  # `Type/id` of the file's content; `sessionId` is ignored. `pairs` may include files (see Includes).
   # @api private
   class Validator
-    def initialize(config)
-      @pairs = config['pairs'].to_a.map { |pair| [pair.values_at('profile', 'resource'), pair['issues'].to_a] }
+    def initialize(config, dir)
+      @pairs = Includes.splice(config['pairs'].to_a, 'validator.pairs', dir).map do |pair, _dir, where|
+        [pair.values_at('profile', 'resource'), pair['issues'].to_a, where]
+      end
       @expected_context = config['expected_context'].to_h
     end
 
@@ -19,8 +21,8 @@ module FHIRStubServer
     def answer(request)
       key, context = Validator.call(request)
       reports = { context_mismatches: mismatches(context, request) }
-      index = pair_index(key)
-      return [index, Responses.validation(@pairs.fetch(index).last), reports] if index
+      pair = matching_pair(key)
+      return [pair.last, Responses.validation(pair[1]), reports] if pair
 
       [:miss, Responses.not_found(request), { **reports, unmatched: [Validator.miss(request, key)] }]
     end
@@ -50,7 +52,7 @@ module FHIRStubServer
 
     private
 
-    def pair_index(key) = @pairs.index { |pair| pair.first == key }
+    def matching_pair(key) = @pairs.find { |pair| pair.first == key }
 
     # Only the listed keys count, each compared exactly; a request that is no validate call has none.
     def mismatches(context, request)

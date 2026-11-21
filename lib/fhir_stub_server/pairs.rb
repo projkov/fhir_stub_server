@@ -14,7 +14,8 @@ module FHIRStubServer
   # `path` is relative to the FHIR base and required; `method` defaults to GET, `status` to 200.
   # `query` and `body` map names to a value or a list of values. `body` is the form body and
   # only counts for `POST .../_search`; other writes match whatever body they send.
-  # When several Pairs match a request, the first one answers.
+  # When several Pairs match a request, the first one answers. An entry `{ from: <path> }` is
+  # replaced by the Pairs of that file (see Includes).
   # @api private
   module Pairs
     BODY_KINDS = %w[body_file select resource].freeze
@@ -22,7 +23,9 @@ module FHIRStubServer
     def self.load(pairs, demo_data, dir)
       bundle = { 'resourceType' => 'Bundle', 'type' => 'collection',
                  'entry' => demo_data.values.map { |resource| { 'resource' => resource } } }
-      pairs.each_with_index.map { |pair, index| build(with_dir(pair, dir), bundle, "fhir.pairs[#{index}]") }
+      Includes.splice(pairs, 'fhir.pairs', dir).map do |pair, pair_dir, where|
+        build(with_dir(pair, pair_dir), bundle, where)
+      end
     end
 
     # The Pair with its `body_file` relative to `dir`.
@@ -32,26 +35,19 @@ module FHIRStubServer
       file ? pair.merge('response' => response.merge('body_file' => File.expand_path(file, dir))) : pair
     end
 
-    # [index, response] of the first Pair matching the request; nil when none does.
+    # [where, response] of the first Pair matching the request; nil when none does.
     def self.answer(pairs, request)
-      index = match(pairs, request)
-      return unless index
-
-      pair = pairs.fetch(index)
-      [index, Responses.raw(pair[:status], pair[:body].call(request))]
-    end
-
-    def self.match(pairs, request)
       key = Request.key(request)
-      pairs.index { |pair| pair[:key] == key }
+      pair = pairs.find { |candidate| candidate[:key] == key }
+      [pair[:where], Responses.raw(pair[:status], pair[:body].call(request))] if pair
     end
 
     # The Pair an unmatched request most likely meant: same method and path, fewest
     # differing parameters, the first on a tie. Differences are keyed by parameter name: expected
     # holds the Pair's values (nil: extra in the request), actual the request's (nil: missing).
     def self.near_miss(pairs, request)
-      index, differences = candidates(pairs, Request.key(request)).min_by { |candidate| candidate.last.size }
-      { nearest_pair: index, differences: differences || {} }
+      where, differences = candidates(pairs, Request.key(request)).min_by { |candidate| candidate.last.size }
+      { nearest_pair: where, differences: differences || {} }
     end
 
     # The `request` of a Pair that would match the request, as written in the config: `method`
@@ -68,11 +64,11 @@ module FHIRStubServer
       params.transform_values { |values| values.one? ? values.first : values } unless params.empty?
     end
 
-    # [index, differences] for each Pair with the request's method and path.
+    # [where, differences] for each Pair with the request's method and path.
     def self.candidates(pairs, key)
-      pairs.each_with_index.filter_map do |pair, index|
+      pairs.filter_map do |pair|
         pair_key = pair[:key]
-        [index, differences(pair_key, key)] if pair_key.slice(:method, :path) == key.slice(:method, :path)
+        [pair[:where], differences(pair_key, key)] if pair_key.slice(:method, :path) == key.slice(:method, :path)
       end
     end
 
@@ -91,7 +87,7 @@ module FHIRStubServer
     def self.build(pair, bundle, where)
       response = pair['response'].to_h
       { key: Request.key(request(pair['request'].to_h, where)), status: response.fetch('status', 200),
-        body: body(response, bundle, where) }
+        body: body(response, bundle, where), where: }
     end
 
     # The Pair's request, normalized exactly like an incoming one.
@@ -155,7 +151,7 @@ module FHIRStubServer
       raise Error, "#{where}: resource must yield exactly one resource, got #{results.size}"
     end
 
-    private_class_method :with_dir, :match, :config_values, :candidates, :differences, :diff, :build, :request, :body,
+    private_class_method :with_dir, :config_values, :candidates, :differences, :diff, :build, :request, :body,
                          :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
   end
 end

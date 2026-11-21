@@ -2,13 +2,14 @@
 
 # The main seam: every adapter must give the same responses and reports for the same config
 # and requests. Including groups define `serve(stub)`, which starts the adapter and returns
-# the base URLs as { fhir:, validator: }.
+# the base URLs as { fhir:, validator: }. Config paths are relative to spec/fixtures.
 RSpec.shared_examples 'a Stub transport' do
   let(:sources) { [{ 'bundle' => fixture('demo.json') }] }
   let(:pairs) { [] }
   let(:validator) { nil }
   let(:stub) do
-    FHIRStubServer::Stub.new({ 'fhir' => { 'sources' => sources, 'pairs' => pairs }, 'validator' => validator }.compact)
+    FHIRStubServer::Stub.new({ 'fhir' => { 'sources' => sources, 'pairs' => pairs }, 'validator' => validator }.compact,
+                             dir: fixture('.'))
   end
   let(:base_urls) { serve(stub) }
   let(:base_url) { base_urls[:fhir] }
@@ -95,11 +96,26 @@ RSpec.shared_examples 'a Stub transport' do
 
       differences = { '_count' => { expected: nil, actual: ['10'] },
                       'patient' => { expected: ['p1'], actual: ['p2'] } }
-      expect(stub.unmatched).to match([include(request: include(path: '/Observation'), nearest_pair: 1, differences:)])
+      expect(stub.unmatched).to match([include(request: include(path: '/Observation'), nearest_pair: 'fhir.pairs[1]',
+                                               differences:)])
       expect(stub.unmatched_report).to eq(
         'Unmatched fhir GET /Observation?_count=10&code=8867-4&patient=p2; nearest fhir.pairs[1]: ' \
         '_count expected nil, got ["10"]; patient expected ["p1"], got ["p2"]; ' \
         'request: {"path":"/Observation","query":{"_count":"10","code":"8867-4","patient":"p2"}}'
+      )
+    end
+  end
+
+  context 'with Pairs from a shared file that includes another' do
+    let(:pairs) { [{ 'from' => 'shared/pairs.yml' }] }
+
+    it 'answers from them, their body_files relative to their file, and reports where they are written' do
+      expect(get('/Patient/p1').body).to eq(File.read(fixture('patient_gone.json')))
+      get('/Observation?patient=p2')
+
+      expect(stub.served.map { |entry| entry[:answered_by] }).to eq(['fhir.pairs[0] (shared/pairs.yml[0])', :miss])
+      expect(stub.unmatched).to match(
+        [include(nearest_pair: 'fhir.pairs[0] (shared/pairs.yml[1] > shared/nested/observations.yml[0])')]
       )
     end
   end
@@ -115,7 +131,7 @@ RSpec.shared_examples 'a Stub transport' do
 
       expect(response.code).to eq('404')
       expect(response.body).to eq(File.read(fixture('patient_gone.json')))
-      expect(stub.served).to match([include(answered_by: 0)])
+      expect(stub.served).to match([include(answered_by: 'fhir.pairs[0]')])
     end
   end
 
@@ -138,7 +154,8 @@ RSpec.shared_examples 'a Stub transport' do
       expect(post_form('/Patient/_search', 'family=Müller&given=John&given=Jo').code).to eq('404')
       suggested_request = { 'method' => 'POST', 'path' => '/Patient/_search',
                             'body' => { 'family' => 'Müller', 'given' => %w[Jo John] } }
-      expect(stub.unmatched).to match([{ request: include(body: 'family=Müller&given=John&given=Jo'), nearest_pair: 0,
+      expect(stub.unmatched).to match([{ request: include(body: 'family=Müller&given=John&given=Jo'),
+                                         nearest_pair: 'fhir.pairs[0]',
                                          differences: { 'family' => { expected: ['Smith'], actual: ['Müller'] } },
                                          suggested_request: }])
     end
@@ -190,7 +207,7 @@ RSpec.shared_examples 'a Stub transport' do
       expect(JSON.parse(response.body)).to eq('sessionId' => 'stub', 'outcomes' => [{ 'issues' => [issue] }])
       expect(stub.context_mismatches).to match([{ request: include(role: :validator), key: 'txServer',
                                                   expected: 'n/a', actual: 'http://tx.fhir.org' }])
-      expect(stub.served).to match([include(answered_by: 0, request: include(role: :validator))])
+      expect(stub.served).to match([include(answered_by: 'validator.pairs[0]', request: include(role: :validator))])
     end
 
     it 'reports a validate call no Pair matches' do
@@ -201,6 +218,16 @@ RSpec.shared_examples 'a Stub transport' do
                                                suggested_request: { 'profile' => 'other-profile',
                                                                     'resource' => 'Patient/p1' })])
       expect(stub.context_mismatches).to be_empty
+    end
+
+    context 'with its Pairs from a shared file' do
+      let(:validator) { { 'pairs' => [{ 'from' => 'shared/validator.yml' }] } }
+
+      it 'answers from them and reports where the Pair is written' do
+        validate('example-patient', patient, 'cliContext' => {})
+
+        expect(stub.served).to match([include(answered_by: 'validator.pairs[0] (shared/validator.yml[0])')])
+      end
     end
   end
 end

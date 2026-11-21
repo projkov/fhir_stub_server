@@ -13,7 +13,7 @@ RSpec.describe FHIRStubServer do
       responses = %w[p1 p2].map { |id| Net::HTTP.get_response(URI("http://fhir.stub.test/fhir/Patient/#{id}")) }
 
       expect(responses.map(&:code)).to eq(%w[404 200])
-      expect(stub.served.map { |entry| entry[:answered_by] }).to eq([0, :demo_data])
+      expect(stub.served.map { |entry| entry[:answered_by] }).to eq(['fhir.pairs[0]', :demo_data])
     end
   end
 end

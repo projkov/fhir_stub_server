@@ -1,0 +1,4 @@
+# Pairs a config includes with `from: shared/pairs.yml`. Paths are relative to this file.
+- request: { path: /Patient/p1 }
+  response: { status: 404, body_file: ../patient_gone.json }
+- from: nested/observations.yml

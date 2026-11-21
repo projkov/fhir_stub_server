@@ -9,7 +9,7 @@ module FHIRStubServer
     def self.describe(miss)
       request = miss[:request]
       nearest = miss[:nearest_pair]
-      near = "; nearest fhir.pairs[#{nearest}]: #{differences(miss[:differences])}" if nearest
+      near = "; nearest #{nearest}: #{differences(miss[:differences])}" if nearest
       line = ["#{request[:role]} #{request[:method]} #{request[:path]}", URI.encode_www_form(request[:query])]
       "Unmatched #{line.reject(&:empty?).join('?')}#{near}#{suggestion(miss)}"
     end

@@ -58,6 +58,21 @@ RSpec.describe FHIRStubServer::Stub, '.new' do
       pair.call({ 'select' => 'entry.resource.id' }),
       /\Afhir\.pairs\[0\]: entry\.resource\.id must yield resources only\z/
     ],
+    'a missing included file' => [
+      { 'fhir' => { 'pairs' => [{ 'from' => '/missing/pairs.yml' }] } },
+      %r{\Afhir\.pairs\[0\]: Cannot read /missing/pairs\.yml}
+    ],
+    'an include that is more than a from: path' => [
+      { 'fhir' => { 'pairs' => [{ 'from' => 5 }] } }, /\Afhir\.pairs\[0\]: an include is \{ from: <path> \} only\z/
+    ],
+    'an included file that is no list' => [
+      { 'validator' => { 'pairs' => [{ 'from' => fixture('demo.json') }] } },
+      %r{\Avalidator\.pairs\[0\]: .*spec/fixtures/demo\.json must hold a list of Pairs\z}
+    ],
+    'an include cycle' => [
+      { 'fhir' => { 'pairs' => [{ 'from' => fixture('shared/cycle.yml') }] } },
+      %r{\Afhir\.pairs\[0\] \(.*shared/cycle\.yml\[0\]\): including .*shared/cycle\.yml again is a cycle\z}
+    ],
     'an expression fhirpath-rb fails on' => [
       { 'fhir' => { 'sources' => [{ 'package' => absent_birth_date }],
                     'pairs' => [{ 'request' => { 'path' => '/Patient' },

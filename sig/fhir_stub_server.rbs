@@ -48,9 +48,9 @@ module FHIRStubServer
     @reports: Hash[Symbol, Array[Hash[Symbol, untyped]]]
   end
 
-  # What a role answers a request with: what answered it (a Pair index, :demo_data or :miss),
+  # What a role answers a request with: what answered it (where the Pair is written, :demo_data or :miss),
   # the response and the report entries to append, by report name.
-  type answer = [Integer | Symbol, response, Hash[Symbol, Array[Hash[Symbol, untyped]]]]
+  type answer = [String | Symbol, response, Hash[Symbol, Array[Hash[Symbol, untyped]]]]
 
   class FHIRRole
     @pairs: Array[Pairs::pair]
@@ -66,19 +66,18 @@ module FHIRStubServer
   end
 
   module Pairs
-    type pair = { key: Request::key, status: Integer, body: ^(request) -> String }
+    type pair = { key: Request::key, status: Integer, body: ^(request) -> String, where: String }
     type differences = Hash[String, { expected: Array[String]?, actual: Array[String]? }]
 
     BODY_KINDS: Array[String]
 
     def self.load: (Array[Hash[String, untyped]] pairs, Hash[String, resource] demo_data, String dir) -> Array[pair]
     def self.with_dir: (Hash[String, untyped] pair, String dir) -> Hash[String, untyped]
-    def self.answer: (Array[pair] pairs, request request) -> [Integer, response]?
-    def self.match: (Array[pair] pairs, request request) -> Integer?
-    def self.near_miss: (Array[pair] pairs, request request) -> { nearest_pair: Integer?, differences: differences }
+    def self.answer: (Array[pair] pairs, request request) -> [String, response]?
+    def self.near_miss: (Array[pair] pairs, request request) -> { nearest_pair: String?, differences: differences }
     def self.suggested_request: (request request) -> Hash[String, untyped]
     def self.config_values: (Hash[String, Array[String]]? params) -> Hash[String, String | Array[String]]?
-    def self.candidates: (Array[pair] pairs, Request::key key) -> Array[[Integer, differences]]
+    def self.candidates: (Array[pair] pairs, Request::key key) -> Array[[String, differences]]
     def self.differences: (Request::key pair_key, Request::key request_key) -> differences
     def self.diff: (Hash[String, Array[String]] expected, Hash[String, Array[String]] actual) -> differences
     def self.build: (Hash[String, untyped] pair, resource bundle, String where) -> pair
@@ -89,6 +88,29 @@ module FHIRStubServer
     def self.evaluate: (String? expression, resource bundle, String where) -> Array[resource]
     def self.resources_only: (Array[untyped] results, String label) -> Array[resource]
     def self.one_resource: (Array[resource] results, String where) -> resource
+  end
+
+  class Includes
+    # [pair as written, dir of its file, where it is written]
+    type spliced = [untyped, String, String]
+    # [file holding the entry (nil: the config itself), index], for each entry leading to a Pair
+    type trail = Array[[String?, Integer]]
+
+    @name: String
+    @root: String
+
+    def self.splice: (Array[untyped] entries, String name, String dir) -> Array[spliced]
+    def initialize: (String name, String dir) -> void
+    def pairs: (Array[untyped] entries, ?String? file, ?trail trail) -> Array[spliced]
+
+    private
+
+    def entry_pairs: (untyped entry, String dir, trail at) -> Array[spliced]
+    def from_path: (Hash[String, untyped] include, String dir, trail at) -> String
+    def included: (String file, trail at) -> Array[spliced]
+    def read: (String file, trail at) -> untyped
+    def where: (trail at) -> String
+    def relative: (String file) -> String
   end
 
   module Request
@@ -135,10 +157,10 @@ module FHIRStubServer
     type key = [String?, String?]
     type mismatch = { request: request, key: String, expected: untyped, actual: untyped }
 
-    @pairs: Array[[key, Array[untyped]]]
+    @pairs: Array[[key, Array[untyped], String]]
     @expected_context: Hash[String, untyped]
 
-    def initialize: (Hash[String, untyped] config) -> void
+    def initialize: (Hash[String, untyped] config, String dir) -> void
     def answer: (request request) -> answer
     def self.call: (request request) -> [key, Hash[String, untyped]]?
     def self.key: (Hash[String, untyped] file) -> key
@@ -146,7 +168,7 @@ module FHIRStubServer
 
     private
 
-    def pair_index: (key? key) -> Integer?
+    def matching_pair: (key? key) -> [key, Array[untyped], String]?
     def mismatches: (Hash[String, untyped]? context, request request) -> Array[mismatch]
   end
 

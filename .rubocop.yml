@@ -14,3 +14,7 @@ Metrics/BlockLength:
 # Reek rejects one-letter names such as `e`.
 Naming/RescuedExceptionsVariableName:
   PreferredName: error
+
+# Steep reads `#: Type` assertions where it cannot infer a tuple's type.
+Layout/LeadingCommentSpace:
+  AllowRBSInlineAnnotation: true

@@ -2,6 +2,7 @@
 
 require 'fhirpath'
 require 'json'
+require 'pathname'
 require 'rubygems/package'
 require 'stringio'
 require 'uri'
@@ -52,6 +53,7 @@ module FHIRStubServer
 end
 
 require_relative 'fhir_stub_server/fhir_role'
+require_relative 'fhir_stub_server/includes'
 require_relative 'fhir_stub_server/pairs'
 require_relative 'fhir_stub_server/rack_app'
 require_relative 'fhir_stub_server/replay'

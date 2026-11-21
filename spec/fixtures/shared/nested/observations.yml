@@ -1,0 +1,2 @@
+- request: { path: /Observation, query: { patient: p1 } }
+  response: { body_file: ../../smith_searchset.json }
