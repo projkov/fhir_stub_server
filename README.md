@@ -274,6 +274,16 @@ Pitfalls:
   parameters; a read that sends one needs a Pair.
 - When several Pairs match a request, the first answers, and a Pair wins over Demo Data.
 - `package`, `bundle`, `body_file` and `from` paths are relative to the file that names them.
+- fhirpath-rb (0.1.7) has defects that change what a `select` or `include` matches,
+  mostly without an error, so check `stub.empty_selects`:
+  - `in` and `contains` are always false for elements read from the resource. Add
+    `.toString()`: `where(status.toString() in ('final' | 'amended'))`.
+  - A primitive that has only an extension (`_birthDate` with a data-absent-reason) is
+    empty, yet `exists()` is true and a comparison raises. Guard it in a `where` of its
+    own, since `and` evaluates both sides:
+    `where(birthDate.extension.empty()).where(birthDate > @1975-05-02)`.
+  - Choice elements resolve only by their concrete name: `effectiveDateTime`, not
+    `effective`.
 
 To point a kit's own agents here, add a line to its `AGENTS.md`:
 
