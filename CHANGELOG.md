@@ -5,6 +5,16 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `- from: <path>` entries in `fhir.pairs` and `validator.pairs`: the Pairs of a shared
+  YAML file, spliced in at that position, its paths relative to it.
+
+### Changed
+
+- `answered_by` and `nearest_pair` name the Pair by where it is written
+  (`fhir.pairs[1]`, `fhir.pairs[0] (shared.yml[7])`) instead of giving its index.
+
 ## [0.1.0] - 2026-11-20
 
 Initial release.
