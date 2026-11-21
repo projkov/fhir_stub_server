@@ -36,6 +36,11 @@ module FHIRStubServer
                   .map { |pair, request| "Unused #{pair}: #{JSON.generate(request)}" }.join("\n")
     end
 
+    # One `{ role:, pair:, expression: }` per `select` or `include` that yielded nothing when the
+    # Stub was built, in config order, but for Pairs whose response says `expect_empty: true`.
+    # Usually a typo: the search then answers an empty searchset.
+    def empty_selects = @roles[:fhir].empty_selects
+
     # Whether the config has a `validator:` block; without one the adapters route only the FHIR role.
     def validator? = @validator
 

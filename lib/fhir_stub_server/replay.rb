@@ -2,8 +2,9 @@
 
 module FHIRStubServer
   # Scenario replay: one Scenario's Stub served on its own, to point Inferno's UI at. A RackApp
-  # that logs the load-time skips at start and each unmatched request as it arrives; drift fails
-  # nothing. Used by `fhir-stub-server`, which also calls #log_unused_pairs on shutdown, and `config.ru`.
+  # that logs the load-time skips and empty selects at start and each unmatched request as it
+  # arrives; drift fails nothing. Used by `fhir-stub-server`, which also calls #log_unused_pairs on
+  # shutdown, and `config.ru`.
   class Replay
     def initialize(stub, log = $stderr)
       @stub = stub
@@ -11,6 +12,7 @@ module FHIRStubServer
       @log = log
       @lock = Mutex.new # Puma serves requests on several threads; each miss is logged once
       stub.served.each { |entry| log.puts "Skipped #{entry[:skipped]}: #{entry[:reason]}" }
+      stub.empty_selects.each { |entry| log.puts format('Empty %<pair>s: %<expression>s', entry) }
     end
 
     def call(env)

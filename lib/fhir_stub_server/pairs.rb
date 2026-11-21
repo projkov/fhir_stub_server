@@ -9,7 +9,8 @@ module FHIRStubServer
   # The response has exactly one body kind: `body_file` (literal JSON), `resource` (a FHIRPath
   # expression yielding exactly one resource) or `select` (FHIRPath, answered as a searchset;
   # an optional `include` adds resources with search.mode include). Expressions run once, over
-  # a collection Bundle of all Demo Data, when the Stub is built.
+  # a collection Bundle of all Demo Data, when the Stub is built. An empty `select` or `include`
+  # is listed in Stub#empty_selects, unless the response says `expect_empty: true`.
   #
   # `path` is relative to the FHIR base and required; `method` defaults to GET, `status` to 200.
   # `query` and `body` map names to a value or a list of values. `body` is the form body and
@@ -50,27 +51,6 @@ module FHIRStubServer
       { nearest_pair: where, differences: differences || {} }
     end
 
-    # The `request` of a Pair that would match the request, as written in the config.
-    def self.suggested_request(request) = config_request(Request.key(request))
-
-    # One `{ role:, pair:, request: }` per Pair: where it is written and its request.
-    def self.listed(pairs)
-      pairs.map { |pair| { role: :fhir, pair: pair[:where], request: config_request(pair[:key]) } }
-    end
-
-    # A key as the config writes a Pair's `request`: `method` only when not GET, a single value
-    # unwrapped, the form `body` only for `POST .../_search`.
-    def self.config_request(key)
-      method = key[:method]
-      { 'method' => (method unless method == 'GET'), 'path' => key[:path],
-        'query' => config_values(key[:query]), 'body' => config_values(key[:form]) }.compact
-    end
-
-    def self.config_values(params)
-      params = params.to_h
-      params.transform_values { |values| values.one? ? values.first : values } unless params.empty?
-    end
-
     # [where, differences] for each Pair with the request's method and path.
     def self.candidates(pairs, key)
       pairs.filter_map do |pair|
@@ -92,9 +72,10 @@ module FHIRStubServer
     end
 
     def self.build(pair, bundle, where)
+      key = Request.key(request(pair['request'].to_h, where))
       response = pair['response'].to_h
-      { key: Request.key(request(pair['request'].to_h, where)), status: response.fetch('status', 200),
-        body: body(response, bundle, where), where: }
+      body, empty_selects = body(response, bundle, where)
+      { key:, status: response.fetch('status', 200), body:, where:, empty_selects: }
     end
 
     # The Pair's request, normalized exactly like an incoming one.
@@ -108,14 +89,26 @@ module FHIRStubServer
       )
     end
 
-    # A lambda building the body for a matched request. Only a searchset needs the request:
-    # its fullUrls and self link use the request's base URL.
+    # A lambda building the body for a matched request, and its Stub#empty_selects entries.
+    # Only a searchset needs the request: its fullUrls and self link use the request's base URL.
     def self.body(config, bundle, where)
-      return literal_body(config, bundle, where) unless body_kind(config, where) == 'select'
+      return [literal_body(config, bundle, where), []] unless body_kind(config, where) == 'select'
 
-      matches = evaluate(config['select'], bundle, where)
-      includes = evaluate(config['include'], bundle, where).uniq - matches # each fullUrl once
+      expressions = config.slice('select', 'include').compact # `include: ~` is no expression
+      results = expressions.transform_values { |expression| evaluate(expression, bundle, where) }
+      [searchset_body(results.fetch('select', []), results.fetch('include', [])), empty_selects(config, results, where)]
+    end
+
+    def self.searchset_body(matches, includes)
+      includes = includes.uniq - matches # each fullUrl once
       ->(request) { Responses.searchset(request, matches, includes) }
+    end
+
+    # One entry per `select` or `include` that yielded nothing; none when the response expects that.
+    def self.empty_selects(config, results, where)
+      return [] if config['expect_empty']
+
+      results.filter_map { |name, found| { role: :fhir, pair: where, expression: config[name] } if found.empty? }
     end
 
     # The fixed body of a `body_file` or `resource` response.
@@ -158,7 +151,7 @@ module FHIRStubServer
       raise Error, "#{where}: resource must yield exactly one resource, got #{results.size}"
     end
 
-    private_class_method :with_dir, :config_values, :candidates, :differences, :diff, :build, :request, :body,
-                         :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
+    private_class_method :with_dir, :candidates, :differences, :diff, :build, :request, :body, :searchset_body,
+                         :empty_selects, :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
   end
 end

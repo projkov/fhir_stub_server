@@ -201,6 +201,23 @@ RSpec.shared_examples 'a Stub transport' do
     end
   end
 
+  context 'with select Pairs that match nothing' do
+    let(:pairs) do
+      [{ 'select' => 'entry.resource.ofType(Patient)', 'include' => 'entry.resource.ofType(Medicaton)' },
+       { 'select' => "entry.resource.ofType(Patient).where(name.family = 'Smtih')" },
+       { 'select' => "entry.resource.ofType(Patient).where(name.family = 'Nobody')", 'expect_empty' => true }]
+        .map { |response| { 'request' => { 'path' => '/Patient' }, 'response' => response } }
+    end
+
+    it 'records each empty select and include, but not those of a Pair that expects them' do
+      expect(stub.empty_selects).to eq(
+        [{ role: :fhir, pair: 'fhir.pairs[0]', expression: 'entry.resource.ofType(Medicaton)' },
+         { role: :fhir, pair: 'fhir.pairs[1]',
+           expression: "entry.resource.ofType(Patient).where(name.family = 'Smtih')" }]
+      )
+    end
+  end
+
   context 'with a resource Pair for /metadata' do
     let(:pairs) do
       [{ 'request' => { 'path' => '/metadata' },

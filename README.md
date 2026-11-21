@@ -97,6 +97,16 @@ A Pair is one expected request and the response configured for it.
     base URL. No paging.
 - Expressions are literal FHIRPath, evaluated once over a `collection` Bundle of all
   Demo Data (after overrides).
+- A `select` or `include` that yields nothing still builds, and is listed in
+  `stub.empty_selects` (see [Reports](#reports)). For a search meant to find nothing, add
+  `expect_empty: true` to the response; it leaves out the Pair's `include` too:
+
+  ```yaml
+  - request: { path: /Patient, query: { family: Nobody } }
+    response:
+      select: "Bundle.entry.resource.ofType(Patient).where(name.family = 'Nobody')"
+      expect_empty: true
+  ```
 - Writes (`POST`, `PUT`) get their Pair's response and never change Demo Data.
 - Any other request gets a 404 OperationOutcome and is recorded in `#unmatched`.
 
@@ -164,6 +174,12 @@ is written and `request` the request it matches, shaped like a `suggested_reques
 (`{ 'profile' =>, 'resource' => }` for a validator Pair). As a kit changes, Pairs stop being requested;
 assert `expect(stub.unused_pairs).to be_empty, stub.unused_pairs_report` to notice.
 
+`stub.empty_selects` lists, in config order, each `select` or `include` that yielded
+nothing when the Stub was built: `{ role: :fhir, pair:, expression: }`. It is usually a
+typo, or an expression fhirpath-rb evaluates wrongly, and the search then answers an empty
+searchset that a test may skip or even pass on. A Pair whose response says
+`expect_empty: true` is left out, so assert `expect(stub.empty_selects).to be_empty`.
+
 ## In process: WebMock
 
 ```ruby
@@ -215,9 +231,9 @@ or, with Rack tooling and a port of your choice:
 STUB_SERVER_CONFIG=spec/fixtures/scenario.yml bundle exec rackup "$(bundle info --path fhir_stub_server)/config.ru" -p 9292
 ```
 
-Both log load-time skips at start and each unmatched request with its nearest Pair and
-differences; nothing fails on a miss. `fhir-stub-server` also logs the unused Pairs on
-shutdown.
+Both log load-time skips and empty selects (`Empty fhir.pairs[2]: <expression>`) at
+start, and each unmatched request with its nearest Pair and differences; nothing fails on
+a miss. `fhir-stub-server` also logs the unused Pairs on shutdown.
 
 ## Working with LLM agents
 

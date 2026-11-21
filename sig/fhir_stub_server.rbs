@@ -34,6 +34,9 @@ module FHIRStubServer
   # A Pair as Stub#unused_pairs lists it: where it is written and its request as the config writes it.
   type unused_pair = { role: :fhir | :validator, pair: String, request: Hash[String, untyped] }
 
+  # A `select` or `include` that yielded nothing, as Stub#empty_selects lists it.
+  type empty_select = { role: :fhir, pair: String, expression: String }
+
   class Error < StandardError
   end
 
@@ -45,6 +48,7 @@ module FHIRStubServer
     def unmatched_report: () -> String
     def unused_pairs: () -> Array[unused_pair]
     def unused_pairs_report: () -> String
+    def empty_selects: () -> Array[empty_select]
     def validator?: () -> bool
     def respond: (request request) -> response
 
@@ -64,6 +68,10 @@ module FHIRStubServer
     def initialize: (Hash[String, untyped] config, Hash[String, resource] demo_data, String dir) -> void
     def answer: (request request) -> answer
     def pairs: () -> Array[unused_pair]
+    def empty_selects: () -> Array[empty_select]
+    def self.listed: (Array[Pairs::pair] pairs) -> Array[unused_pair]
+    def self.config: (Request::key key) -> Hash[String, untyped]
+    def self.config_values: (Hash[String, Array[String]]? params) -> Hash[String, String | Array[String]]?
     def self.read_path: (request request) -> String?
 
     private
@@ -72,7 +80,7 @@ module FHIRStubServer
   end
 
   module Pairs
-    type pair = { key: Request::key, status: Integer, body: ^(request) -> String, where: String }
+    type pair = { key: Request::key, status: Integer, body: ^(request) -> String, where: String, empty_selects: Array[empty_select] }
     type differences = Hash[String, { expected: Array[String]?, actual: Array[String]? }]
 
     BODY_KINDS: Array[String]
@@ -81,16 +89,14 @@ module FHIRStubServer
     def self.with_dir: (Hash[String, untyped] pair, String dir) -> Hash[String, untyped]
     def self.answer: (Array[pair] pairs, request request) -> [String, response]?
     def self.near_miss: (Array[pair] pairs, request request) -> { nearest_pair: String?, differences: differences }
-    def self.suggested_request: (request request) -> Hash[String, untyped]
-    def self.listed: (Array[pair] pairs) -> Array[unused_pair]
-    def self.config_request: (Request::key key) -> Hash[String, untyped]
-    def self.config_values: (Hash[String, Array[String]]? params) -> Hash[String, String | Array[String]]?
     def self.candidates: (Array[pair] pairs, Request::key key) -> Array[[String, differences]]
     def self.differences: (Request::key pair_key, Request::key request_key) -> differences
     def self.diff: (Hash[String, Array[String]] expected, Hash[String, Array[String]] actual) -> differences
     def self.build: (Hash[String, untyped] pair, resource bundle, String where) -> pair
     def self.request: (Hash[String, untyped] config, String where) -> request
-    def self.body: (Hash[String, untyped] config, resource bundle, String where) -> ^(request) -> String
+    def self.body: (Hash[String, untyped] config, resource bundle, String where) -> [^(request) -> String, Array[empty_select]]
+    def self.searchset_body: (Array[resource] matches, Array[resource] includes) -> ^(request) -> String
+    def self.empty_selects: (Hash[String, untyped] config, Hash[String, Array[resource]] results, String where) -> Array[empty_select]
     def self.literal_body: (Hash[String, untyped] config, resource bundle, String where) -> ^(request) -> String
     def self.body_kind: (Hash[String, untyped] config, String where) -> String?
     def self.evaluate: (String? expression, resource bundle, String where) -> Array[resource]
