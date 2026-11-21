@@ -138,8 +138,16 @@ the profile (`filesToValidate[0].fileName` without `.json`) and the `Type/id` of
 file's content; `sessionId` is ignored. Inferno names the file after the last segment
 of the profile URL, version included, so a Pair for
 `http://example.org/StructureDefinition/au-core-patient|1.0.0` says
-`profile: au-core-patient|1.0.0`. A matching Pair answers
-`{ "sessionId": "stub", "outcomes": [{ "issues": issues }] }`.
+`profile: au-core-patient|1.0.0`. Two cases follow from that rule:
+
+- A suite that validates against a base resource passes its core URL, usually without a
+  version (`http://hl7.org/fhir/StructureDefinition/CapabilityStatement`), so the Pair
+  says `profile: CapabilityStatement`.
+- A suite may validate one resource against both `au-core-patient|1.0.0` and the
+  unversioned `au-core-patient` (AU Core's reference-resolution tests do): each needs its
+  own Pair.
+
+A matching Pair answers `{ "sessionId": "stub", "outcomes": [{ "issues": issues }] }`.
 
 `expected_context` lists the validator settings to check: each key is compared exactly
 with the request's `cliContext` (or `validationContext`), and other keys are ignored. A
