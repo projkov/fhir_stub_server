@@ -32,6 +32,10 @@ jobs:
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
       - run: bundle exec rake
-      - uses: rubygems/configure-rubygems-credentials@v1
+      - uses: rubygems/configure-rubygems-credentials@v2.2.0
+        with:
+          # RubyGems.org lets a pending trusted publisher create the gem only for the
+          # account the workflow names here.
+          owner: prozhkov
       - run: gem build fhir_stub_server.gemspec
       - run: gem push "fhir_stub_server-$VERSION.gem"
