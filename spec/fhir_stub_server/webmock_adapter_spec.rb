@@ -8,4 +8,12 @@ RSpec.describe FHIRStubServer::WebMockAdapter do
   end
 
   it_behaves_like 'a Stub transport'
+
+  it 'leaves hash_including query stubs matching after uninstall' do
+    serve(FHIRStubServer::Stub.new({ 'fhir' => { 'sources' => [], 'pairs' => [] } }, dir: fixture('.')))
+    described_class.uninstall
+    WebMock.stub_request(:get, 'http://other.test/x').with(query: hash_including('a' => '1'))
+
+    expect(Net::HTTP.get_response(URI('http://other.test/x?a=1&b=2')).code).to eq('200')
+  end
 end

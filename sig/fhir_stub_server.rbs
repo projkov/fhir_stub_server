@@ -262,7 +262,11 @@ module FHIRStubServer
   end
 
   module WebMockAdapter
+    self.@previous_notation: Symbol?
+
     def self.install: (Stub stub, fhir_base_url: String, ?validator_base_url: String?) -> void
+    def self.uninstall: () -> void
+    def self.keep_repeated_query_parameters: () -> void
     def self.route: (Stub stub, :fhir | :validator role, String base_url) -> void
     def self.stub_request: (untyped request, :fhir | :validator role, String base_url) -> request
   end

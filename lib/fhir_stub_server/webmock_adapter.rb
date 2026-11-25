@@ -9,12 +9,26 @@ module FHIRStubServer
   module WebMockAdapter
     def self.install(stub, fhir_base_url:, validator_base_url: nil)
       WebMock.enable! # a plain `require 'webmock'` intercepts nothing; webmock/rspec enables it
-      # The default notation parses the query into a Hash and keeps only the last of repeated
-      # parameters (`date=ge2020&date=le2021`). Global: hash_including query stubs stop matching.
-      WebMock::Config.instance.query_values_notation = :flat_array
+      keep_repeated_query_parameters
       { fhir: fhir_base_url, validator: (validator_base_url if stub.validator?) }.compact.each do |role, base_url|
         route(stub, role, base_url.chomp('/'))
       end
+    end
+
+    # Restores the query notation `install` replaced. The catch-all stubs stay until WebMock resets.
+    def self.uninstall
+      return unless instance_variable_defined?(:@previous_notation)
+
+      WebMock::Config.instance.query_values_notation = remove_instance_variable(:@previous_notation)
+    end
+
+    # The default notation parses the query into a Hash and keeps only the last of repeated
+    # parameters (`date=ge2020&date=le2021`). Global: hash_including query stubs stop matching.
+    def self.keep_repeated_query_parameters
+      config = WebMock::Config.instance
+      # The default is nil, so whether the variable is defined tells if `install` already ran.
+      @previous_notation = config.query_values_notation unless instance_variable_defined?(:@previous_notation)
+      config.query_values_notation = :flat_array
     end
 
     def self.route(stub, role, base_url)
@@ -34,6 +48,6 @@ module FHIRStubServer
       )
     end
 
-    private_class_method :route, :stub_request
+    private_class_method :keep_repeated_query_parameters, :route, :stub_request
   end
 end

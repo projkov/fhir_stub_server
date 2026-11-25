@@ -16,6 +16,8 @@ follow [Semantic Versioning](https://semver.org/).
 - `Stub#empty_selects`: each `select` or `include` that yielded nothing at build time,
   but for Pairs whose response says `expect_empty: true`. Scenario replay logs them at
   start.
+- `WebMockAdapter.uninstall`: restores the WebMock query notation `install` replaced, so
+  `hash_including` query stubs match again after the example.
 
 ### Changed
 
