@@ -11,7 +11,8 @@ module FHIRStubServer
       @rack_app = RackApp.new(stub)
       @log = log
       @lock = Mutex.new # Puma serves requests on several threads; each miss is logged once
-      stub.served.each { |entry| log.puts "Skipped #{entry[:skipped]}: #{entry[:reason]}" }
+      stub.served.select { |entry| entry[:kind] == :load }
+          .each { |entry| log.puts "Skipped #{entry[:skipped]}: #{entry[:reason]}" }
       stub.empty_selects.each { |entry| log.puts format('Empty %<pair>s: %<expression>s', entry) }
     end
 
