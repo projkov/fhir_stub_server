@@ -20,6 +20,11 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - run: bundle exec rake
+      - uses: codecov/codecov-action@v5
+        if: matrix.ruby == '4.0'
+        with:
+          files: coverage/coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   rack2:
     name: rspec (Rack 2.2)
