@@ -6,7 +6,7 @@ module WebMock
 
   class Config
     def self.instance: () -> Config
-    attr_accessor query_values_notation: Symbol
+    attr_accessor query_values_notation: Symbol?
   end
 
   class RequestStub

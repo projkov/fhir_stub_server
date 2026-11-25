@@ -222,7 +222,8 @@ still raise through `WebMock.disable_net_connect!`.
 - `install` sets `WebMock::Config.instance.query_values_notation = :flat_array`
   globally, so repeated query parameters are kept. Until `uninstall` restores the
   previous notation, `hash_including` and `hash_excluding` query stubs stop matching;
-  plain Hash and URL-string queries still work. In RSpec:
+  plain Hash and URL-string queries still work. `uninstall` leaves the catch-all stubs in
+  place until WebMock resets. In RSpec:
   `config.after { FHIRStubServer::WebMockAdapter.uninstall }`.
 - `webmock/rspec` resets stubs after every example, so install per example.
 
