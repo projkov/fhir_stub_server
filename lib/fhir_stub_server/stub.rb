@@ -7,10 +7,10 @@ module FHIRStubServer
     # File paths in the config are relative to `dir`, by default the working directory.
     def initialize(config, dir: '.')
       fhir = config['fhir'].to_h
-      demo_data, served = Sources.load(fhir['sources'].to_a, dir)
+      demo_data, served, model = Sources.load(fhir['sources'].to_a, dir)
       validator = config['validator']
       @validator = validator ? true : false
-      @roles = { fhir: FHIRRole.new(fhir, demo_data, dir), validator: Validator.new(validator.to_h, dir) }
+      @roles = { fhir: FHIRRole.new(fhir, demo_data, model, dir), validator: Validator.new(validator.to_h, dir) }
       @reports = { served:, unmatched: [], context_mismatches: [] }
     end
 

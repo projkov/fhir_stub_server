@@ -63,7 +63,8 @@ directory).
 
 Every config error raises a `FHIRStubServer::Error` naming the file or Pair when the
 Stub is built, never when a request arrives: a missing or invalid file, the same
-`Type/id` twice in one package, several server CapabilityStatements, a Pair response
+`Type/id` twice in one package, packages that share no FHIR version fhirpath-rb has a
+model for, several server CapabilityStatements, a Pair response
 with zero or several body kinds, `include` without `select`, a `resource` expression
 yielding zero or several resources, an included file that is no list, an include cycle.
 
@@ -96,7 +97,9 @@ A Pair is one expected request and the response configured for it.
     (`search.mode: include`), with `fullUrl`s and a `self` link built from the request's
     base URL. No paging.
 - Expressions are literal FHIRPath, evaluated once over a `collection` Bundle of all
-  Demo Data (after overrides).
+  Demo Data (after overrides), with the FHIR model of the packages' `fhirVersions`
+  (R4 when no package states one), so choice elements resolve: `effective` finds an
+  `effectiveDateTime`.
 - A `select` or `include` that yields nothing still builds, and is listed in
   `stub.empty_selects` (see [Reports](#reports)). For a search meant to find nothing, add
   `expect_empty: true` to the response; it leaves out the Pair's `include` too:
@@ -290,8 +293,6 @@ Pitfalls:
     empty, yet `exists()` is true and a comparison raises. Guard it in a `where` of its
     own, since `and` evaluates both sides:
     `where(birthDate.extension.empty()).where(birthDate > @1975-05-02)`.
-  - Choice elements resolve only by their concrete name: `effectiveDateTime`, not
-    `effective`.
 
 To point a kit's own agents here, add a line to its `AGENTS.md`:
 

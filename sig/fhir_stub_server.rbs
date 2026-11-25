@@ -65,7 +65,7 @@ module FHIRStubServer
     @pairs: Array[Pairs::pair]
     @reads: Hash[String, resource]
 
-    def initialize: (Hash[String, untyped] config, Hash[String, resource] demo_data, String dir) -> void
+    def initialize: (Hash[String, untyped] config, Hash[String, resource] demo_data, String model, String dir) -> void
     def answer: (request request) -> answer
     def pairs: () -> Array[unused_pair]
     def empty_selects: () -> Array[empty_select]
@@ -81,25 +81,28 @@ module FHIRStubServer
 
   module Pairs
     type pair = { key: Request::key, status: Integer, body: ^(request) -> String, where: String, empty_selects: Array[empty_select] }
+    # Evaluates a FHIRPath expression over all Demo Data.
+    type fhirpath = ^(String expression) -> Array[untyped]
     type differences = Hash[String, { expected: Array[String]?, actual: Array[String]? }]
 
     BODY_KINDS: Array[String]
 
-    def self.load: (Array[Hash[String, untyped]] pairs, Hash[String, resource] demo_data, String dir) -> Array[pair]
+    def self.load: (Array[Hash[String, untyped]] pairs, fhirpath fhirpath, String dir) -> Array[pair]
+    def self.fhirpath: (Hash[String, resource] demo_data, String model) -> fhirpath
     def self.with_dir: (Hash[String, untyped] pair, String dir) -> Hash[String, untyped]
     def self.answer: (Array[pair] pairs, request request) -> [String, response]?
     def self.near_miss: (Array[pair] pairs, request request) -> { nearest_pair: String?, differences: differences }
     def self.candidates: (Array[pair] pairs, Request::key key) -> Array[[String, differences]]
     def self.differences: (Request::key pair_key, Request::key request_key) -> differences
     def self.diff: (Hash[String, Array[String]] expected, Hash[String, Array[String]] actual) -> differences
-    def self.build: (Hash[String, untyped] pair, resource bundle, String where) -> pair
+    def self.build: (Hash[String, untyped] pair, fhirpath fhirpath, String where) -> pair
     def self.request: (Hash[String, untyped] config, String where) -> request
-    def self.body: (Hash[String, untyped] config, resource bundle, String where) -> [^(request) -> String, Array[empty_select]]
+    def self.body: (Hash[String, untyped] config, fhirpath fhirpath, String where) -> [^(request) -> String, Array[empty_select]]
     def self.searchset_body: (Array[resource] matches, Array[resource] includes) -> ^(request) -> String
     def self.empty_selects: (Hash[String, untyped] config, Hash[String, Array[resource]] results, String where) -> Array[empty_select]
-    def self.literal_body: (Hash[String, untyped] config, resource bundle, String where) -> ^(request) -> String
+    def self.literal_body: (Hash[String, untyped] config, fhirpath fhirpath, String where) -> ^(request) -> String
     def self.body_kind: (Hash[String, untyped] config, String where) -> String?
-    def self.evaluate: (String? expression, resource bundle, String where) -> Array[resource]
+    def self.evaluate: (String? expression, fhirpath fhirpath, String where) -> Array[resource]
     def self.resources_only: (Array[untyped] results, String label) -> Array[resource]
     def self.one_resource: (Array[resource] results, String where) -> resource
   end
@@ -149,18 +152,25 @@ module FHIRStubServer
 
   module Sources
     type located = [String, resource]
+    # [package path, the FHIR versions its package.json states]
+    type stated = [String, Array[untyped]]
 
-    def self.load: (Array[Hash[String, String]] sources, String dir) -> [Hash[String, resource], Array[Hash[Symbol, untyped]]]
+    MODELS: Hash[String, String]
+
+    def self.load: (Array[Hash[String, String]] sources, String dir) -> [Hash[String, resource], Array[Hash[Symbol, untyped]], String]
+    def self.model: (Array[stated] stated) -> String
+    def self.no_common_version: (Array[stated] stated) -> Error
+    def self.models: (String path, Array[untyped] versions) -> Array[String]
     def self.index: (Array[located] located) -> Hash[String, resource]
     def self.skipped_entries: (Array[located] skipped) -> Array[Hash[Symbol, untyped]]
     def self.reads: (Hash[String, resource] demo_data) -> Hash[String, resource]
     def self.server_capability_statement: (Array[resource] resources) -> resource?
     def self.server?: (resource resource) -> bool
     def self.key: (resource resource) -> String
-    def self.located_resources: (Hash[String, String] source, String dir) -> Array[located]
-    def self.package_resources: (String path) -> Array[located]
-    def self.tar_resources: (String path, Zlib::GzipReader archive) -> Array[located]
-    def self.package_resource: (String path, Gem::Package::TarReader::Entry entry) -> located?
+    def self.located_resources: (Hash[String, String] source, String dir) -> [Array[located], stated?]
+    def self.package_resources: (String path) -> [Array[located], stated]
+    def self.json_files: (String path) -> Array[[String, Hash[String, untyped]]]
+    def self.tar_json_files: (Zlib::GzipReader archive) -> Array[[String, Hash[String, untyped]]]
     def self.json: (Gem::Package::TarReader::Entry entry) -> untyped
     def self.bundle_resources: (String path) -> Array[located]
     def self.no_duplicates: (Array[located] located) -> Array[located]

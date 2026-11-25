@@ -5,12 +5,35 @@ module FHIRStubServer
   # A Source is `package: <FHIR NPM package .tgz>` or `bundle: <Bundle .json>`.
   # @api private
   module Sources
-    # Returns the index and the load-time #served entries for resources skipped for having no id.
-    # Source paths are relative to `dir`.
+    MODELS = { '1.0' => 'dstu2', '3.0' => 'stu3', '4.0' => 'r4', '5.0' => 'r5' }.freeze
+
+    # Returns the index, the load-time #served entries for resources skipped for having no id,
+    # and the fhirpath-rb model of the packages' FHIR version. Source paths are relative to `dir`.
     def self.load(sources, dir)
-      located = sources.flat_map { |source| located_resources(source, dir) }
-      kept, skipped = located.partition { |_, resource| resource['id'] }
-      [index(kept), skipped_entries(skipped)]
+      loaded = sources.map { |source| located_resources(source, dir) }
+      kept, skipped = loaded.flat_map(&:first).partition { |_, resource| resource['id'] }
+      [index(kept), skipped_entries(skipped), model(loaded.filter_map(&:last))]
+    end
+
+    # The model every package stating FHIR versions supports, in the first one's order; R4 when
+    # none states any, as a Bundle carries none.
+    def self.model(stated)
+      stated = stated.reject { |_, versions| versions.empty? }
+      common = stated.map { |path, versions| models(path, versions) }.reduce(:&) || ['r4']
+      common.first || raise(no_common_version(stated))
+    end
+
+    def self.no_common_version(stated)
+      packages = stated.map { |path, versions| "#{path} (#{versions.join(', ')})" }
+      Error.new("Demo Data packages share no FHIR version: #{packages.join(', ')}")
+    end
+
+    # The models for a package's FHIR versions, skipping versions without one.
+    def self.models(path, versions)
+      models = versions.filter_map { |version| MODELS[version.to_s[/\A\d+\.\d+/].to_s] }
+      return models unless models.empty?
+
+      raise Error, "#{path}: FHIR #{versions.join(', ')} has no FHIRPath model"
     end
 
     def self.index(located)
@@ -46,35 +69,43 @@ module FHIRStubServer
       "#{resource['resourceType']}/#{resource['id']}"
     end
 
-    # A Source's resources as [location, resource] pairs, the location naming the file.
+    # A Source's resources as [location, resource] pairs, the location naming the file, and for
+    # a package [path, the FHIR versions it states].
     def self.located_resources(source, dir)
       package, bundle = source.values_at('package', 'bundle').map { |path| File.expand_path(path, dir) if path }
-      return no_duplicates(package_resources(package)) if package
-      return bundle_resources(bundle) if bundle
+      return package_resources(package) if package
+      return [bundle_resources(bundle), nil] if bundle
 
       raise Error, "Unknown Source: #{source.inspect}"
     end
 
     # Every JSON file with a resourceType: examples and conformance resources alike. Anything
-    # else (package.json, .index.json, openapi/, xml/, empty files) is not a resource and is
-    # left out. Bundles stay whole.
+    # else (.index.json, openapi/, xml/, empty files) is not a resource and is left out; of
+    # package.json only `fhirVersions` counts. Bundles stay whole.
     def self.package_resources(path)
-      Zlib::GzipReader.wrap(StringIO.new(FHIRStubServer.read_file(path).b)) { |archive| tar_resources(path, archive) }
+      files = json_files(path)
+      resources = files.filter_map do |name, json|
+        ["#{path} (#{name})", json] if json.key?('resourceType')
+      end #: Array[located]
+      [no_duplicates(resources), [path, Array(files.to_h['package/package.json'].to_h['fhirVersions'])]]
+    end
+
+    def self.json_files(path)
+      Zlib::GzipReader.wrap(StringIO.new(FHIRStubServer.read_file(path).b)) { |archive| tar_json_files(archive) }
     rescue Zlib::Error, Gem::Package::TarInvalidError => error
       raise Error, "#{path}: not a FHIR package .tgz (#{error.message})"
     end
 
-    def self.tar_resources(path, archive)
-      Gem::Package::TarReader.new(archive).filter_map { |entry| package_resource(path, entry) }
-    end
-
-    def self.package_resource(path, entry)
-      resource = json(entry)
-      ["#{path} (#{entry.full_name})", resource] if resource.is_a?(Hash) && resource.key?('resourceType')
+    def self.tar_json_files(archive)
+      Gem::Package::TarReader.new(archive).filter_map do |entry|
+        name = entry.full_name
+        json = json(entry) if name.end_with?('.json')
+        [name, json] if json.is_a?(Hash)
+      end
     end
 
     def self.json(entry)
-      JSON.parse(entry.read.to_s) if entry.full_name.end_with?('.json')
+      JSON.parse(entry.read.to_s)
     rescue JSON::ParserError
       nil
     end
@@ -101,8 +132,8 @@ module FHIRStubServer
              .find { |_, copies| copies.size > 1 }
     end
 
-    private_class_method :index, :skipped_entries, :server_capability_statement, :server?, :key, :located_resources,
-                         :package_resources, :tar_resources, :package_resource, :json, :bundle_resources,
-                         :no_duplicates, :duplicate
+    private_class_method :model, :no_common_version, :models, :index, :skipped_entries, :server_capability_statement,
+                         :server?, :key, :located_resources, :package_resources, :json_files, :tar_json_files, :json,
+                         :bundle_resources, :no_duplicates, :duplicate
   end
 end

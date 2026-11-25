@@ -9,8 +9,9 @@ module FHIRStubServer
   # The response has exactly one body kind: `body_file` (literal JSON), `resource` (a FHIRPath
   # expression yielding exactly one resource) or `select` (FHIRPath, answered as a searchset;
   # an optional `include` adds resources with search.mode include). Expressions run once, over
-  # a collection Bundle of all Demo Data, when the Stub is built. An empty `select` or `include`
-  # is listed in Stub#empty_selects, unless the response says `expect_empty: true`.
+  # a collection Bundle of all Demo Data with the FHIR model of its version (see Sources), when
+  # the Stub is built. An empty `select` or `include` is listed in Stub#empty_selects, unless
+  # the response says `expect_empty: true`.
   #
   # `path` is relative to the FHIR base and required; `method` defaults to GET, `status` to 200.
   # `query` and `body` map names to a value or a list of values. `body` is the form body and
@@ -21,12 +22,17 @@ module FHIRStubServer
   module Pairs
     BODY_KINDS = %w[body_file select resource].freeze
 
-    def self.load(pairs, demo_data, dir)
+    def self.load(pairs, fhirpath, dir)
+      Includes.splice(pairs, 'fhir.pairs', dir).map do |pair, pair_dir, where|
+        build(with_dir(pair, pair_dir), fhirpath, where)
+      end
+    end
+
+    # A lambda evaluating an expression over all Demo Data, with fhirpath-rb's `model` (e.g. `r4`).
+    def self.fhirpath(demo_data, model)
       bundle = { 'resourceType' => 'Bundle', 'type' => 'collection',
                  'entry' => demo_data.values.map { |resource| { 'resource' => resource } } }
-      Includes.splice(pairs, 'fhir.pairs', dir).map do |pair, pair_dir, where|
-        build(with_dir(pair, pair_dir), bundle, where)
-      end
+      ->(expression) { Fhirpath.evaluate(bundle, expression, {}, model) }
     end
 
     # The Pair with its `body_file` relative to `dir`.
@@ -71,10 +77,10 @@ module FHIRStubServer
       end.to_h
     end
 
-    def self.build(pair, bundle, where)
+    def self.build(pair, fhirpath, where)
       key = Request.key(request(pair['request'].to_h, where))
       response = pair['response'].to_h
-      body, empty_selects = body(response, bundle, where)
+      body, empty_selects = body(response, fhirpath, where)
       { key:, status: response.fetch('status', 200), body:, where:, empty_selects: }
     end
 
@@ -91,11 +97,11 @@ module FHIRStubServer
 
     # A lambda building the body for a matched request, and its Stub#empty_selects entries.
     # Only a searchset needs the request: its fullUrls and self link use the request's base URL.
-    def self.body(config, bundle, where)
-      return [literal_body(config, bundle, where), []] unless body_kind(config, where) == 'select'
+    def self.body(config, fhirpath, where)
+      return [literal_body(config, fhirpath, where), []] unless body_kind(config, where) == 'select'
 
       expressions = config.slice('select', 'include').compact # `include: ~` is no expression
-      results = expressions.transform_values { |expression| evaluate(expression, bundle, where) }
+      results = expressions.transform_values { |expression| evaluate(expression, fhirpath, where) }
       [searchset_body(results.fetch('select', []), results.fetch('include', [])), empty_selects(config, results, where)]
     end
 
@@ -112,11 +118,11 @@ module FHIRStubServer
     end
 
     # The fixed body of a `body_file` or `resource` response.
-    def self.literal_body(config, bundle, where)
+    def self.literal_body(config, fhirpath, where)
       body = if config.key?('body_file')
                FHIRStubServer.read_file(config['body_file'])
              else
-               JSON.generate(one_resource(evaluate(config['resource'], bundle, where), where))
+               JSON.generate(one_resource(evaluate(config['resource'], fhirpath, where), where))
              end
       ->(_request) { body }
     end
@@ -129,10 +135,10 @@ module FHIRStubServer
       kinds.first
     end
 
-    def self.evaluate(expression, bundle, where)
+    def self.evaluate(expression, fhirpath, where)
       return [] unless expression
 
-      resources_only(Fhirpath.evaluate(bundle, expression), "#{where}: #{expression}")
+      resources_only(fhirpath.call(expression), "#{where}: #{expression}")
     rescue StandardError => error # a Fhirpath::Error, or a fhirpath-rb bug such as a TypeError
       raise if error.is_a?(Error) # from resources_only, already labelled
 

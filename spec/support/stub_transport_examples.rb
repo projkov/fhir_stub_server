@@ -201,6 +201,25 @@ RSpec.shared_examples 'a Stub transport' do
     end
   end
 
+  context 'with a select on a choice element, over a package for R4 and R4B' do
+    let(:sources) do
+      [{ 'package' => build_package('r4_observation',
+                                    'package/package.json' => { 'fhirVersions' => %w[4.0.1 4.3.0] },
+                                    'package/Observation-o1.json' => {
+                                      'resourceType' => 'Observation', 'id' => 'o1',
+                                      'effectiveDateTime' => '2020-01-01'
+                                    }) }]
+    end
+    let(:pairs) do
+      [{ 'request' => { 'path' => '/Observation' },
+         'response' => { 'select' => 'entry.resource.ofType(Observation).where(effective.exists())' } }]
+    end
+
+    it 'resolves the choice element with the FHIR model' do
+      expect(JSON.parse(get('/Observation').body)).to include('total' => 1)
+    end
+  end
+
   context 'with select Pairs that match nothing' do
     let(:pairs) do
       [{ 'select' => 'entry.resource.ofType(Patient)', 'include' => 'entry.resource.ofType(Medicaton)' },

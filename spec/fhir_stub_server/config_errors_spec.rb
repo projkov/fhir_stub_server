@@ -16,7 +16,19 @@ RSpec.describe FHIRStubServer::Stub, '.new' do
                                       '_birthDate' => { 'extension' => [{ 'url' => 'http://example.org/absent' }] }
                                     })
 
+  fhir_package = lambda do |version|
+    build_package("fhir#{version}", 'package/package.json' => { 'fhirVersions' => [version] })
+  end
+
   {
+    'packages for different FHIR versions' => [
+      { 'fhir' => { 'sources' => [{ 'package' => fhir_package['4.0.1'] }, { 'package' => fhir_package['5.0.0'] }] } },
+      %r{Demo Data packages share no FHIR version: .*/fhir4\.0\.1\.tgz \(4\.0\.1\), .*/fhir5\.0\.0\.tgz \(5\.0\.0\)}
+    ],
+    'a FHIR version without a FHIRPath model' => [
+      { 'fhir' => { 'sources' => [{ 'package' => fhir_package['4.3.0'] }] } },
+      %r{/fhir4\.3\.0\.tgz: FHIR 4\.3\.0 has no FHIRPath model}
+    ],
     'a missing Source file' => [
       { 'fhir' => { 'sources' => [{ 'bundle' => '/missing/demo.json' }] } }, %r{/missing/demo\.json}
     ],

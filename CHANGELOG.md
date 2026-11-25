@@ -17,6 +17,10 @@ follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- FHIRPath expressions are evaluated with the FHIR model of the packages' `fhirVersions`
+  (R4 when no package states one), so choice elements resolve (`effective` finds an
+  `effectiveDateTime`). Packages that share no FHIR version with a model (R4B alone,
+  or R4 next to R5) raise when the Stub is built.
 - `answered_by` and `nearest_pair` name the Pair by where it is written
   (`fhir.pairs[1]`, `fhir.pairs[0] (shared.yml[7])`) instead of giving its index.
 
