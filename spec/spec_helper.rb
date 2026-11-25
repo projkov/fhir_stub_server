@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'net/http'
+# Puma adapts to the loaded Rack (e.g. env['HTTP_VERSION'] below Rack 3.1), so load the bundled one as a host app would.
+require 'rack'
 require 'webmock/rspec'
 require 'fhir_stub_server'
 

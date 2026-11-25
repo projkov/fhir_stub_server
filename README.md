@@ -237,8 +237,7 @@ server.stop
 `HTTPServer` serves the Stub with Puma on a random free port of `127.0.0.1`, in a
 background thread. `FHIRStubServer::RackApp.new(stub, fhir_base_path: '/fhir',
 validator_base_path: '/validator')` is the Rack app behind it, for any Rack server.
-It reads only the Rack env and needs no rack gem; Rack 2.2 (which inferno_core pins)
-and Rack 3 are supported, and CI runs the specs against both.
+It reads only the Rack env and needs no rack gem; CI runs the specs on Rack 2.2 and 3.2.
 Requests outside both base paths get a plain 404 and are not recorded.
 `HTTPServer.new` also takes any other Rack app (such as a `Replay`) and serves it as it is;
 `#wait` blocks until `#stop`.

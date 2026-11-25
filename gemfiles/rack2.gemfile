@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# The specs on Rack 2.2: BUNDLE_GEMFILE=gemfiles/rack2.gemfile bundle exec rspec.
 # No rackup here: rackup 2 needs Rack 3.
 source 'https://rubygems.org'
 
