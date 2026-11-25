@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+# Before anything from lib/ loads, or its lines go uncounted. CI uploads coverage/coverage.xml to Codecov.
+require 'simplecov'
+require 'simplecov-cobertura'
+SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
+SimpleCov.start { add_filter '/spec/' }
+
 require 'net/http'
 # Puma adapts to the loaded Rack (e.g. env['HTTP_VERSION'] below Rack 3.1), so load the bundled one as a host app would.
 require 'rack'

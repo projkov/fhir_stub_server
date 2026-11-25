@@ -19,6 +19,7 @@ GEM
       rexml
     date_time_precision (0.8.1)
     diff-lcs (1.6.2)
+    docile (1.4.1)
     fhir_models (5.1.0)
       bcp47 (>= 0.3)
       date_time_precision (>= 0.8)
@@ -74,6 +75,15 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
     rspec-support (3.13.8)
+    simplecov (0.22.0)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
+    simplecov-cobertura (3.2.0)
+      rexml
+      simplecov (~> 0.19)
+    simplecov-html (0.13.2)
+    simplecov_json_formatter (0.1.4)
     webmock (3.41.0)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
@@ -94,6 +104,8 @@ DEPENDENCIES
   puma (~> 8.0)
   rack (~> 2.2)
   rspec (~> 3.13)
+  simplecov (~> 0.22)
+  simplecov-cobertura (~> 3.0)
   webmock (~> 3.35)
 
 CHECKSUMS
@@ -106,6 +118,7 @@ CHECKSUMS
   crack (1.0.1) sha256=ff4a10390cd31d66440b7524eb1841874db86201d5b70032028553130b6d4c7e
   date_time_precision (0.8.1) sha256=77547764faca6c73761b9c10d7a226fd29de44ef42538c644da01680a1ee22aa
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
+  docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   fhir_models (5.1.0) sha256=5139aadcc372648847d648b2415911c4a2c053e57b3f02d2637ec6e3bdb2013f
   fhir_stub_server (0.1.0)
   fhirpath-rb (0.1.7) sha256=74571c9031419e42bbbade8c07138e8dcce433e192fed481271a717b27a1bdf0
@@ -134,6 +147,10 @@ CHECKSUMS
   rspec-expectations (3.13.6) sha256=bf538ca6d367ff5b0d85a87fdb5c0c6038f2cd1308a0eeba07476caa02d22f35
   rspec-mocks (3.13.9) sha256=ea5c7ff3054a6098ca6039aacef80aec69d5a8a3ef80be8fc88337359b672a30
   rspec-support (3.13.8) sha256=e4160030309b7e3e9d9863dfe720a35dfcc577162f5402cd68fc8c5258a0ffd6
+  simplecov (0.22.0) sha256=fe2622c7834ff23b98066bb0a854284b2729a569ac659f82621fc22ef36213a5
+  simplecov-cobertura (3.2.0) sha256=70d702658677fcb20e5aceb6915ccf8bc62ff2ccd38b62b3ad5c9db5c0888740
+  simplecov-html (0.13.2) sha256=bd0b8e54e7c2d7685927e8d6286466359b6f16b18cb0df47b508e8d73c777246
+  simplecov_json_formatter (0.1.4) sha256=529418fbe8de1713ac2b2d612aa3daa56d316975d307244399fa4838c601b428
   webmock (3.41.0) sha256=9648ac9f83881790f562130d04cf54d74c4bd5e90740c519535b14da0757ee74
 
 BUNDLED WITH
