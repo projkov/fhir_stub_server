@@ -9,10 +9,9 @@ module FHIRStubServer
   # The response has exactly one body kind: `body_file` (literal JSON), `resource` (a FHIRPath
   # expression yielding exactly one resource) or `select` (FHIRPath, answered as a searchset;
   # an optional `include` adds resources with search.mode include, an optional `page_size` pages
-  # the matches, see Paging). Expressions run once, over
-  # a collection Bundle of all Demo Data with the FHIR model of its version (see Sources), when
-  # the Stub is built. An empty `select` or `include` is listed in Stub#empty_selects, unless
-  # the response says `expect_empty: true`.
+  # the matches, see Paging). Expressions run once, over a collection Bundle of all Demo Data
+  # with the FHIR model of its version (see Sources), when the Stub is built. An empty `select`
+  # or `include` is listed in Stub#empty_selects, unless the response says `expect_empty: true`.
   #
   # `path` is relative to the FHIR base and required; `method` defaults to GET, `status` to 200.
   # `query` and `body` map names to a value or a list of values. `body` is the form body and

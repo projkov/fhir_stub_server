@@ -66,8 +66,8 @@ Stub is built, never when a request arrives: a missing or invalid file, the same
 `Type/id` twice in one package, packages that share no FHIR version fhirpath-rb has a
 model for, several server CapabilityStatements, a Pair response
 with zero or several body kinds, `include` or `page_size` without `select`, a `page_size`
-that is no positive integer, a `resource` expression
-yielding zero or several resources, an included file that is no list, an include cycle.
+that is no positive integer, a `resource` expression yielding zero or several resources, an
+included file that is no list, an include cycle.
 
 ### Sources and Demo Data
 
@@ -99,9 +99,10 @@ A Pair is one expected request and the response configured for it.
     base URL.
 - `page_size: n` on a `select` response pages its matches, n per page; `total` counts all
   of them and the includes come on the first page. Each page but the last has a `next` link
-  to a Stub-served continuation URL, `<base>/_page/<the Pair's index in the list>/<page>`.
-  Its GET is answered and recorded like any request, `answered_by` the Pair; a page past
-  the last is a miss:
+  to a Stub-served continuation URL, `<base>/_page/<index>/<page>`, where `<index>` is the
+  Pair's position in the list once `from:` files are spliced in. Clients follow `next` and
+  do not build the URL. Its GET is answered and recorded like any request, `answered_by` the
+  Pair; a page past the last is a miss:
 
   ```yaml
   - request: { path: /Observation, query: { patient: p1 } }
