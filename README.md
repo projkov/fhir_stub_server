@@ -1,7 +1,9 @@
 # fhir_stub_server
 
 [![CI](https://github.com/projkov/fhir_stub_server/actions/workflows/ci.yml/badge.svg)](https://github.com/projkov/fhir_stub_server/actions/workflows/ci.yml)
-[API reference](https://rubydoc.info/gems/fhir_stub_server)
+[![Gem Version](https://img.shields.io/gem/v/fhir_stub_server)](https://rubygems.org/gems/fhir_stub_server)
+[![codecov](https://codecov.io/gh/projkov/fhir_stub_server/branch/main/graph/badge.svg)](https://codecov.io/gh/projkov/fhir_stub_server)
+[![API reference](https://img.shields.io/badge/docs-rubydoc.info-blue)](https://rubydoc.info/gems/fhir_stub_server)
 
 A strict stub for the FHIR server under test and for Inferno's validator, for regression
 tests of FHIR test kits. It answers only the requests a Scenario declares, serves IG
