@@ -80,7 +80,8 @@ module FHIRStubServer
   end
 
   module Pairs
-    type pair = { key: Request::key, status: Integer, body: ^(request) -> String, where: String, empty_selects: Array[empty_select] }
+    type body = ^(request request, Paging::page page) -> String?
+    type pair = { key: Request::key, status: Integer, body: body, where: String, empty_selects: Array[empty_select] }
     # Evaluates a FHIRPath expression over all Demo Data.
     type fhirpath = ^(String expression) -> Array[untyped]
     type differences = Hash[String, { expected: Array[String]?, actual: Array[String]? }]
@@ -97,10 +98,9 @@ module FHIRStubServer
     def self.diff: (Hash[String, Array[String]] expected, Hash[String, Array[String]] actual) -> differences
     def self.build: (Hash[String, untyped] pair, fhirpath fhirpath, String where) -> pair
     def self.request: (Hash[String, untyped] config, String where) -> request
-    def self.body: (Hash[String, untyped] config, fhirpath fhirpath, String where) -> [^(request) -> String, Array[empty_select]]
-    def self.searchset_body: (Array[resource] matches, Array[resource] includes) -> ^(request) -> String
+    def self.body: (Hash[String, untyped] config, fhirpath fhirpath, String where) -> [body, Array[empty_select]]
     def self.empty_selects: (Hash[String, untyped] config, Hash[String, Array[resource]] results, String where) -> Array[empty_select]
-    def self.literal_body: (Hash[String, untyped] config, fhirpath fhirpath, String where) -> ^(request) -> String
+    def self.literal_body: (Hash[String, untyped] config, fhirpath fhirpath, String where) -> body
     def self.body_kind: (Hash[String, untyped] config, String where) -> String?
     def self.evaluate: (String? expression, fhirpath fhirpath, String where) -> Array[resource]
     def self.resources_only: (Array[untyped] results, String label) -> Array[resource]
@@ -139,12 +139,29 @@ module FHIRStubServer
     def self.key: (request request) -> key
   end
 
+  module Paging
+    # The total of all matches, and each page's [matches, includes].
+    type pages = { total: Integer, entries: Array[[Array[resource], Array[resource]]] }
+
+    type page = { number: Integer, path: String }
+
+    PATH: Regexp
+
+    def self.locate: (Array[Pairs::pair] pairs, Request::key key) -> [Integer, page]?
+    def self.continued: (Request::key key) -> [Integer, page]?
+    def self.page: (Integer index, Integer number) -> [Integer, page]
+    def self.body: (Hash[String, untyped] config, Hash[String, Array[resource]] results, String where) -> Pairs::body
+    def self.size: (Hash[String, untyped] config, Array[resource] matches, String where) -> Integer
+    def self.split: (Array[resource] matches, Array[resource] includes, Integer size) -> pages
+  end
+
   module Responses
     CONTENT_TYPE: String
 
     def self.fhir: (Integer status, resource resource) -> response
     def self.raw: (Integer status, String body) -> response
-    def self.searchset: (request request, Array[resource] matches, Array[resource] includes) -> String
+    def self.searchset: (request request, Paging::pages pages, Paging::page page) -> String?
+    def self.links: (request request, String? next_url) -> Array[Hash[String, String]]
     def self.entries: (String base_url, Array[resource] resources, String mode) -> Array[Hash[String, untyped]]
     def self.validation: (Array[untyped] issues) -> response
     def self.not_found: (request request) -> response

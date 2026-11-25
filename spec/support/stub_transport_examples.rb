@@ -201,6 +201,28 @@ RSpec.shared_examples 'a Stub transport' do
     end
   end
 
+  context 'with a select Pair with a page_size' do
+    let(:pairs) do
+      [{ 'request' => { 'path' => '/MedicationRequest' },
+         'response' => { 'select' => 'entry.resource.ofType(MedicationRequest)',
+                         'include' => 'entry.resource.ofType(Medication)', 'page_size' => 1 } }]
+    end
+
+    it 'answers page by page, a consumer following next to the end, and reports a page past it' do
+      pages = [JSON.parse(get('/MedicationRequest').body)]
+      while (url = pages.last['link'].find { |link| link['relation'] == 'next' }&.fetch('url'))
+        pages << JSON.parse(Net::HTTP.get(URI(url)))
+      end
+
+      expect(pages.map { |page| page['entry'].map { |entry| entry['fullUrl'].delete_prefix(base_url) } })
+        .to eq([%w[/MedicationRequest/mr1 /Medication/m1], %w[/MedicationRequest/mr2]])
+      expect(pages.map { |page| page['total'] }).to eq([2, 2])
+      expect(get('/_page/0/3').code).to eq('404')
+      expect(stub.served.map { |entry| entry[:answered_by] }).to eq(['fhir.pairs[0]', 'fhir.pairs[0]', :miss])
+      expect(stub.unmatched).to match([include(request: include(path: '/_page/0/3'))])
+    end
+  end
+
   context 'with a select on a choice element, over a package for R4 and R4B' do
     let(:sources) do
       [{ 'package' => build_package('r4_observation',

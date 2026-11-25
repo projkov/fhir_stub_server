@@ -55,6 +55,7 @@ end
 require_relative 'fhir_stub_server/fhir_role'
 require_relative 'fhir_stub_server/includes'
 require_relative 'fhir_stub_server/pairs'
+require_relative 'fhir_stub_server/paging'
 require_relative 'fhir_stub_server/rack_app'
 require_relative 'fhir_stub_server/replay'
 require_relative 'fhir_stub_server/request'

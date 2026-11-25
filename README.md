@@ -65,7 +65,8 @@ Every config error raises a `FHIRStubServer::Error` naming the file or Pair when
 Stub is built, never when a request arrives: a missing or invalid file, the same
 `Type/id` twice in one package, packages that share no FHIR version fhirpath-rb has a
 model for, several server CapabilityStatements, a Pair response
-with zero or several body kinds, `include` without `select`, a `resource` expression
+with zero or several body kinds, `include` or `page_size` without `select`, a `page_size`
+that is no positive integer, a `resource` expression
 yielding zero or several resources, an included file that is no list, an include cycle.
 
 ### Sources and Demo Data
@@ -95,7 +96,19 @@ A Pair is one expected request and the response configured for it.
   - `select: <fhirpath>`, optionally with `include: <fhirpath>`: a `searchset` Bundle of
     the matches (`search.mode: match`, counted in `total`) and includes
     (`search.mode: include`), with `fullUrl`s and a `self` link built from the request's
-    base URL. No paging.
+    base URL.
+- `page_size: n` on a `select` response pages its matches, n per page; `total` counts all
+  of them and the includes come on the first page. Each page but the last has a `next` link
+  to a Stub-served continuation URL, `<base>/_page/<the Pair's index in the list>/<page>`.
+  Its GET is answered and recorded like any request, `answered_by` the Pair; a page past
+  the last is a miss:
+
+  ```yaml
+  - request: { path: /Observation, query: { patient: p1 } }
+    response:
+      select: "Bundle.entry.resource.ofType(Observation).where(subject.reference = 'Patient/p1')"
+      page_size: 2
+  ```
 - Expressions are literal FHIRPath, evaluated once over a `collection` Bundle of all
   Demo Data (after overrides), with the FHIR model of the packages' `fhirVersions`
   (R4 when no package states one), so choice elements resolve: `effective` finds an

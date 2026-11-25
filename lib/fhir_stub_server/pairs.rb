@@ -8,7 +8,8 @@ module FHIRStubServer
   #
   # The response has exactly one body kind: `body_file` (literal JSON), `resource` (a FHIRPath
   # expression yielding exactly one resource) or `select` (FHIRPath, answered as a searchset;
-  # an optional `include` adds resources with search.mode include). Expressions run once, over
+  # an optional `include` adds resources with search.mode include, an optional `page_size` pages
+  # the matches, see Paging). Expressions run once, over
   # a collection Bundle of all Demo Data with the FHIR model of its version (see Sources), when
   # the Stub is built. An empty `select` or `include` is listed in Stub#empty_selects, unless
   # the response says `expect_empty: true`.
@@ -42,11 +43,13 @@ module FHIRStubServer
       file ? pair.merge('response' => response.merge('body_file' => File.expand_path(file, dir))) : pair
     end
 
-    # [where, response] of the first Pair matching the request; nil when none does.
+    # [where, response] of the first Pair matching the request, or of the Pair whose continuation
+    # URL it is while that page exists (see Paging); nil when none does.
     def self.answer(pairs, request)
-      key = Request.key(request)
-      pair = pairs.find { |candidate| candidate[:key] == key }
-      [pair[:where], Responses.raw(pair[:status], pair[:body].call(request))] if pair
+      index, page = Paging.locate(pairs, Request.key(request))
+      pair = pairs[index] if index
+      body = pair && page && pair[:body].call(request, page)
+      [pair[:where], Responses.raw(pair[:status], body)] if pair && body
     end
 
     # The Pair an unmatched request most likely meant: same method and path, fewest
@@ -95,19 +98,14 @@ module FHIRStubServer
       )
     end
 
-    # A lambda building the body for a matched request, and its Stub#empty_selects entries.
-    # Only a searchset needs the request: its fullUrls and self link use the request's base URL.
+    # A lambda building the body of a matched request's page (from 1; nil past the last), and its
+    # Stub#empty_selects entries. Only a searchset needs the request: its URLs use its base URL.
     def self.body(config, fhirpath, where)
       return [literal_body(config, fhirpath, where), []] unless body_kind(config, where) == 'select'
 
       expressions = config.slice('select', 'include').compact # `include: ~` is no expression
       results = expressions.transform_values { |expression| evaluate(expression, fhirpath, where) }
-      [searchset_body(results.fetch('select', []), results.fetch('include', [])), empty_selects(config, results, where)]
-    end
-
-    def self.searchset_body(matches, includes)
-      includes = includes.uniq - matches # each fullUrl once
-      ->(request) { Responses.searchset(request, matches, includes) }
+      [Paging.body(config, results, where), empty_selects(config, results, where)]
     end
 
     # One entry per `select` or `include` that yielded nothing; none when the response expects that.
@@ -124,13 +122,15 @@ module FHIRStubServer
              else
                JSON.generate(one_resource(evaluate(config['resource'], fhirpath, where), where))
              end
-      ->(_request) { body }
+      ->(_request, page) { body if page[:number] == 1 }
     end
 
     def self.body_kind(config, where)
       kinds = BODY_KINDS & config.keys
       raise Error, "#{where}: the response needs exactly one of #{BODY_KINDS.join(', ')}" unless kinds.one?
-      raise Error, "#{where}: include needs select" if config['include'] && kinds != ['select']
+
+      searchset_only = (%w[include page_size] & config.compact.keys).first unless kinds == ['select']
+      raise Error, "#{where}: #{searchset_only} needs select" if searchset_only
 
       kinds.first
     end
@@ -157,7 +157,7 @@ module FHIRStubServer
       raise Error, "#{where}: resource must yield exactly one resource, got #{results.size}"
     end
 
-    private_class_method :with_dir, :candidates, :differences, :diff, :build, :request, :body, :searchset_body,
-                         :empty_selects, :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
+    private_class_method :with_dir, :candidates, :differences, :diff, :build, :request, :body, :empty_selects,
+                         :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
   end
 end

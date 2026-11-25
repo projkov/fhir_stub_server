@@ -14,15 +14,25 @@ module FHIRStubServer
       [status, { 'content-type' => CONTENT_TYPE }, body]
     end
 
-    # The JSON body of a searchset: `matches` (total counts only these), then `includes`. No paging.
-    def self.searchset(request, matches, includes)
+    # The JSON body of a searchset's `page` (see Paging), nil past the last one. `total` counts the
+    # matches of all pages; every page but the last links the `next`.
+    def self.searchset(request, pages, page)
+      number = page[:number]
+      (matches, includes), following = pages[:entries].values_at(number - 1, number)
+      return unless matches
+
       base_url = request[:base_url]
-      self_url = ["#{base_url}#{request[:path]}", URI.encode_www_form(request[:query])].reject(&:empty?).join('?')
       JSON.generate({
-                      'resourceType' => 'Bundle', 'type' => 'searchset', 'total' => matches.size,
-                      'link' => [{ 'relation' => 'self', 'url' => self_url }],
+                      'resourceType' => 'Bundle', 'type' => 'searchset', 'total' => pages[:total],
+                      'link' => links(request, ("#{base_url}#{page[:path]}/#{number + 1}" if following)),
                       'entry' => entries(base_url, matches, 'match') + entries(base_url, includes, 'include')
                     })
+    end
+
+    def self.links(request, next_url)
+      query = URI.encode_www_form(request[:query])
+      self_url = ["#{request[:base_url]}#{request[:path]}", query].reject(&:empty?).join('?')
+      [{ 'relation' => 'self', 'url' => self_url }, ({ 'relation' => 'next', 'url' => next_url } if next_url)].compact
     end
 
     def self.entries(base_url, resources, mode)

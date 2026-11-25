@@ -63,6 +63,13 @@ RSpec.describe FHIRStubServer::Stub, '.new' do
       pair.call({ 'resource' => 'entry.resource.ofType(Patient).first()', 'include' => 'entry.resource' }),
       /fhir\.pairs\[0\]: include needs select/
     ],
+    'a page_size without select' => [
+      pair.call({ 'body_file' => 'x.json', 'page_size' => 1 }), /fhir\.pairs\[0\]: page_size needs select/
+    ],
+    'a page_size that is no positive integer' => [
+      pair.call({ 'select' => 'entry.resource', 'page_size' => 0 }),
+      /fhir\.pairs\[0\]: page_size must be a positive integer/
+    ],
     'an invalid FHIRPath expression' => [
       pair.call({ 'select' => 'entry.resource.((' }), /fhir\.pairs\[0\]: entry\.resource\.\(\(/
     ],

@@ -11,6 +11,8 @@ follow [Semantic Versioning](https://semver.org/).
   YAML file, spliced in at that position, its paths relative to it.
 - `Stub#unused_pairs` and `Stub#unused_pairs_report`: the Pairs no request used, in config
   order. `fhir-stub-server` logs them on shutdown.
+- `page_size: n` on a `select` response: the searchset comes in pages of n matches, each
+  but the last with a `next` link to a Stub-served continuation URL (`<base>/_page/...`).
 - `Stub#empty_selects`: each `select` or `include` that yielded nothing at build time,
   but for Pairs whose response says `expect_empty: true`. Scenario replay logs them at
   start.
