@@ -1,0 +1,12 @@
+# frozen_string_literal: true
+
+# The specs on Rack 2.2: BUNDLE_GEMFILE=gemfiles/rack2.gemfile bundle exec rspec.
+# No rackup here: rackup 2 needs Rack 3.
+source 'https://rubygems.org'
+
+gemspec path: '..'
+
+gem 'puma', '~> 8.0'
+gem 'rack', '~> 2.2'
+gem 'rspec', '~> 3.13'
+gem 'webmock', '~> 3.35'

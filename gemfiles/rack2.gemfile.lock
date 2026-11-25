@@ -1,0 +1,140 @@
+PATH
+  remote: ..
+  specs:
+    fhir_stub_server (0.1.0)
+      fhirpath-rb (~> 0.1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    addressable (2.10.0)
+      public_suffix (>= 2.0.2, < 8.0)
+    base64 (0.3.0)
+    bcp47 (0.3.3)
+      i18n
+    bigdecimal (4.1.3)
+    concurrent-ruby (1.3.8)
+    crack (1.0.1)
+      bigdecimal
+      rexml
+    date_time_precision (0.8.1)
+    diff-lcs (1.6.2)
+    fhir_models (5.1.0)
+      bcp47 (>= 0.3)
+      date_time_precision (>= 0.8)
+      mime-types (>= 3.0)
+      nokogiri (>= 1.19.1)
+    fhirpath-rb (0.1.7)
+      base64
+      bigdecimal
+      fhir_models (~> 5.1)
+      rice (~> 4.0)
+    hashdiff (1.3.0)
+    i18n (1.15.2)
+      concurrent-ruby (~> 1.0)
+    logger (1.7.0)
+    mime-types (3.7.0)
+      logger
+      mime-types-data (~> 3.2025, >= 3.2025.0507)
+    mime-types-data (3.2026.1103)
+    nio4r (2.7.5)
+    nokogiri (1.19.7-aarch64-linux-gnu)
+      racc (~> 1.4)
+    nokogiri (1.19.7-aarch64-linux-musl)
+      racc (~> 1.4)
+    nokogiri (1.19.7-arm-linux-gnu)
+      racc (~> 1.4)
+    nokogiri (1.19.7-arm-linux-musl)
+      racc (~> 1.4)
+    nokogiri (1.19.7-arm64-darwin)
+      racc (~> 1.4)
+    nokogiri (1.19.7-x86_64-darwin)
+      racc (~> 1.4)
+    nokogiri (1.19.7-x86_64-linux-gnu)
+      racc (~> 1.4)
+    nokogiri (1.19.7-x86_64-linux-musl)
+      racc (~> 1.4)
+    public_suffix (7.0.5)
+    puma (8.1.3)
+      nio4r (~> 2.0)
+    racc (1.8.1)
+    rack (2.2.26)
+    rexml (3.4.4)
+    rice (4.12.0)
+    rspec (3.13.2)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
+    rspec-core (3.13.7)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.6)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.9)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.8)
+    webmock (3.41.0)
+      addressable (>= 2.8.0)
+      crack (>= 0.3.2)
+      hashdiff (>= 0.4.0, < 2.0.0)
+
+PLATFORMS
+  aarch64-linux-gnu
+  aarch64-linux-musl
+  arm-linux-gnu
+  arm-linux-musl
+  arm64-darwin
+  x86_64-darwin
+  x86_64-linux-gnu
+  x86_64-linux-musl
+
+DEPENDENCIES
+  fhir_stub_server!
+  puma (~> 8.0)
+  rack (~> 2.2)
+  rspec (~> 3.13)
+  webmock (~> 3.35)
+
+CHECKSUMS
+  addressable (2.10.0) sha256=5e13b9c001adf01dd65ad6e0d2a91d2bc07885c0ff2b83f48cbcd95e08d9de62
+  base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
+  bcp47 (0.3.3) sha256=e203e81a8f94425a0cbd3b2f05f466e5b321f38697412ba9cd121e02382d0825
+  bigdecimal (4.1.3) sha256=61ebe1e5e559bdc3cc6f2c0ee7f427321fc838f59611c294356eb04d6e21cf66
+  bundler (4.0.18) sha256=02d9a17429de1847b4e0c9f27a9ee4b20c0a74c0a641b4e77195d6019e3618ac
+  concurrent-ruby (1.3.8) sha256=b2f1be836e968ccc78ccfce277ea79c72a88633f22306782c16ff23fb415d1e1
+  crack (1.0.1) sha256=ff4a10390cd31d66440b7524eb1841874db86201d5b70032028553130b6d4c7e
+  date_time_precision (0.8.1) sha256=77547764faca6c73761b9c10d7a226fd29de44ef42538c644da01680a1ee22aa
+  diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
+  fhir_models (5.1.0) sha256=5139aadcc372648847d648b2415911c4a2c053e57b3f02d2637ec6e3bdb2013f
+  fhir_stub_server (0.1.0)
+  fhirpath-rb (0.1.7) sha256=74571c9031419e42bbbade8c07138e8dcce433e192fed481271a717b27a1bdf0
+  hashdiff (1.3.0) sha256=0b6724b8f3fef3961acc09489b175698ce0b7fd22c9cc5aa559d280cc6b65649
+  i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
+  logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
+  mime-types (3.7.0) sha256=dcebf61c246f08e15a4de34e386ebe8233791e868564a470c3fe77c00eed5e56
+  mime-types-data (3.2026.1103) sha256=cda7af94d895f1fd33e000acea800e6ed31e4c861e3d6c1a27c8b74f9e44dc64
+  nio4r (2.7.5) sha256=6c90168e48fb5f8e768419c93abb94ba2b892a1d0602cb06eef16d8b7df1dca1
+  nokogiri (1.19.7-aarch64-linux-gnu) sha256=8f5e15d299602456406e1f03a9f3456cceb33a0722811e818d2ee2214eb4c84a
+  nokogiri (1.19.7-aarch64-linux-musl) sha256=efe0c3602e6e54521bc21c681930ce5568e2d11203de17400710b2b3ca2e4cb4
+  nokogiri (1.19.7-arm-linux-gnu) sha256=7fd1907125691aa89e838cc91161761c758b4e17bb32f0dd9b5515a82cc759af
+  nokogiri (1.19.7-arm-linux-musl) sha256=28d0ff0c87b6bb2e56580323a6fb049d5d4a02b94f0958fdd47e9ac146991c77
+  nokogiri (1.19.7-arm64-darwin) sha256=f27d7f25f4873fbc3aa35a2cc2fb680c98555fec1925348da439d0869d541142
+  nokogiri (1.19.7-x86_64-darwin) sha256=508e81e8c5f84aaa240dce981bf1c43faae60808726f0ce7024ee92effc5cafe
+  nokogiri (1.19.7-x86_64-linux-gnu) sha256=25865ccb462f714e712fdf8906fde07849cb6704a808e3d629d75baa5af5dd3b
+  nokogiri (1.19.7-x86_64-linux-musl) sha256=464d1f3dfb0d53cf54c0c6a7e23e8e91cf68ec3cafc2b27dc4a7682f2d9bf546
+  public_suffix (7.0.5) sha256=1a8bb08f1bbea19228d3bed6e5ed908d1cb4f7c2726d18bd9cadf60bc676f623
+  puma (8.1.3) sha256=a12de11fb2f20f8a3ef25a5b1447eabe7142846719eeb9672ee8ec0705b8c3a8
+  racc (1.8.1) sha256=4a7f6929691dbec8b5209a0b373bc2614882b55fc5d2e447a21aaa691303d62f
+  rack (2.2.26) sha256=a0106d3ffa60a7c260ab5c6877d2c07f735c6d281a310335f027dc454c2fc2db
+  rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
+  rice (4.12.0) sha256=672c369ca706ff5be46695537f51e1a3db262c1b789af5b967ef477f25111dfd
+  rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587
+  rspec-core (3.13.7) sha256=c64ff16d9788119805cbc6a3f4b6d87cc22417c2d25976a3330de136896b5469
+  rspec-expectations (3.13.6) sha256=bf538ca6d367ff5b0d85a87fdb5c0c6038f2cd1308a0eeba07476caa02d22f35
+  rspec-mocks (3.13.9) sha256=ea5c7ff3054a6098ca6039aacef80aec69d5a8a3ef80be8fc88337359b672a30
+  rspec-support (3.13.8) sha256=e4160030309b7e3e9d9863dfe720a35dfcc577162f5402cd68fc8c5258a0ffd6
+  webmock (3.41.0) sha256=9648ac9f83881790f562130d04cf54d74c4bd5e90740c519535b14da0757ee74
+
+BUNDLED WITH
+  4.0.18

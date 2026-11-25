@@ -19,12 +19,10 @@ Gem::Specification.new do |spec|
                     'documentation_uri' => 'https://rubydoc.info/gems/fhir_stub_server',
                     'rubygems_mfa_required' => 'true' }
 
-  gemspec = File.basename(__FILE__)
+  ignored = %W[#{File.basename(__FILE__)} bin/ spec/ docs/ sig/external/ .github/ gemfiles/ Gemfile .gitignore
+               .rspec .kata.toml AGENTS.md]
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
-    ls.readlines("\x0", chomp: true).reject do |f|
-      (f == gemspec) ||
-        f.start_with?(*%w[bin/ spec/ docs/ sig/external/ .github/ Gemfile .gitignore .rspec .kata.toml AGENTS.md])
-    end
+    ls.readlines("\x0", chomp: true).reject { |f| f.start_with?(*ignored) }
   end
   spec.bindir = 'exe'
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
