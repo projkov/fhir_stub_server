@@ -3,6 +3,7 @@ name: Release
 # Publishes the gem to RubyGems when a GitHub release is published. RubyGems trusts this
 # workflow in the `release` environment (trusted publishing), so no API key is stored.
 on:
+  workflow_dispatch:
   release:
     types: [published]
 
