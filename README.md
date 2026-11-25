@@ -169,8 +169,8 @@ A matching Pair answers `{ "sessionId": "stub", "outcomes": [{ "issues": issues 
 `expected_context` lists the validator settings to check: each key is compared exactly
 with the request's `cliContext` (or `validationContext`), and other keys are ignored. A
 mismatch is recorded in `#context_mismatches`, and the call is still answered. Without a
-`validator:` block the adapters route only the FHIR role, so the real validator can be
-used.
+`validator:` block (`stub.validator?` is false) the adapters route only the FHIR role, so
+the real validator can be used.
 
 ## Reports
 
@@ -238,7 +238,8 @@ server.stop
 
 `HTTPServer` serves the Stub with Puma on a random free port of `127.0.0.1`, in a
 background thread. `FHIRStubServer::RackApp.new(stub, fhir_base_path: '/fhir',
-validator_base_path: '/validator')` is the Rack app behind it, for any Rack server.
+validator_base_path: '/validator')` is the Rack app behind it, for any Rack server;
+`HTTPServer.new(stub, fhir_base_path: '/r4')` passes these options on to it.
 It reads only the Rack env and needs no rack gem; CI runs the specs on Rack 2.2 and 3.2.
 Requests outside both base paths get a plain 404 and are not recorded.
 `HTTPServer.new` also takes any other Rack app (such as a `Replay`) and serves it as it is;
@@ -251,6 +252,7 @@ To point Inferno's UI at one Scenario's Stub:
 ```bash
 bundle exec fhir-stub-server spec/fixtures/scenario.yml
 # FHIR base URL: http://127.0.0.1:53214/fhir
+# Validator base URL: http://127.0.0.1:53214/validator (only with a validator: block)
 ```
 
 or, with Rack tooling and a port of your choice:
@@ -262,6 +264,10 @@ STUB_SERVER_CONFIG=spec/fixtures/scenario.yml bundle exec rackup "$(bundle info 
 Both log load-time skips and empty selects (`Empty fhir.pairs[2]: <expression>`) at
 start, and each unmatched request with its nearest Pair and differences; nothing fails on
 a miss. `fhir-stub-server` also logs the unused Pairs on shutdown.
+
+Both serve a `FHIRStubServer::Replay`, the Rack app that writes these lines. To replay from
+Ruby, serve `replay = FHIRStubServer::Replay.new(stub, log)` (`log` defaults to `$stderr`)
+with `HTTPServer.new(replay)`, and call `replay.log_unused_pairs` once it has stopped.
 
 ## Working with LLM agents
 
