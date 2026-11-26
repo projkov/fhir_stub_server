@@ -32,11 +32,13 @@ module FHIRStubServer
     end
 
     # A key as the config writes a Pair's `request`: `method` only when not GET, a single value
-    # unwrapped, the form `body` only for `POST .../_search`.
+    # unwrapped, `body` the form of `POST .../_search` or the JSON of another write (none when
+    # it is no JSON object or array).
     def self.config(key)
       method = key[:method]
-      { 'method' => (method unless method == 'GET'), 'path' => key[:path],
-        'query' => config_values(key[:query]), 'body' => config_values(key[:form]) }.compact
+      json = key[:json]
+      { 'method' => (method unless method == 'GET'), 'path' => key[:path], 'query' => config_values(key[:query]),
+        'body' => config_values(key[:form]) || (json unless json.is_a?(String)) }.compact
     end
 
     def self.config_values(params)

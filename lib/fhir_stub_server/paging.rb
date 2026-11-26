@@ -12,7 +12,7 @@ module FHIRStubServer
     # [index, page] of the first Pair whose request the key matches (page 1) or of the Pair and
     # page a continuation URL names; nil for neither.
     def self.locate(pairs, key)
-      index = pairs.index { |pair| pair[:key] == key }
+      index = pairs.index { |pair| Request.match?(pair[:key], key) }
       index ? page(index, 1) : continued(key)
     end
 

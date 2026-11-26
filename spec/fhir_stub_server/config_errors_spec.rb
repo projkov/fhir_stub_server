@@ -50,6 +50,18 @@ RSpec.describe FHIRStubServer::Stub, '.new' do
     'a Pair request without a path' => [
       pair.call({ 'body_file' => 'x.json' }, {}), %r{fhir\.pairs\[0\]: the request needs a path starting with /}
     ],
+    'a Pair request with an unsupported method' => [
+      pair.call({ 'body_file' => 'x.json' }, { 'method' => 'HEAD', 'path' => '/metadata' }),
+      /fhir\.pairs\[0\]: the request method must be one of GET, POST, PUT, PATCH, DELETE, not HEAD/
+    ],
+    'a body on a GET request' => [
+      pair.call({ 'body_file' => 'x.json' }, { 'path' => '/metadata', 'body' => { 'a' => '1' } }),
+      /fhir\.pairs\[0\]: a GET request has no body/
+    ],
+    'a JSON body that is no object or array' => [
+      pair.call({ 'body_file' => 'x.json' }, { 'method' => 'PUT', 'path' => '/Patient/p1', 'body' => 'p1' }),
+      /fhir\.pairs\[0\]: the body must be a JSON object or array/
+    ],
     'a missing body_file' => [
       pair.call({ 'body_file' => '/missing/body.json' }), %r{/missing/body\.json}
     ],

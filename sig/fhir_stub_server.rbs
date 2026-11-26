@@ -84,7 +84,8 @@ module FHIRStubServer
     type pair = { key: Request::key, status: Integer, body: body, where: String, empty_selects: Array[empty_select] }
     # Evaluates a FHIRPath expression over all Demo Data.
     type fhirpath = ^(String expression) -> Array[untyped]
-    type differences = Hash[String, { expected: Array[String]?, actual: Array[String]? }]
+    # Query and form values, or (for `body`) JSON bodies.
+    type differences = Hash[String, { expected: untyped, actual: untyped }]
 
     BODY_KINDS: Array[String]
 
@@ -96,8 +97,8 @@ module FHIRStubServer
     def self.candidates: (Array[pair] pairs, Request::key key) -> Array[[String, differences]]
     def self.differences: (Request::key pair_key, Request::key request_key) -> differences
     def self.diff: (Hash[String, Array[String]] expected, Hash[String, Array[String]] actual) -> differences
+    def self.json_diff: (Request::json? expected, Request::json? actual) -> differences
     def self.build: (Hash[String, untyped] pair, fhirpath fhirpath, String where) -> pair
-    def self.request: (Hash[String, untyped] config, String where) -> request
     def self.body: (Hash[String, untyped] config, fhirpath fhirpath, String where) -> [body, Array[empty_select]]
     def self.empty_selects: (Hash[String, untyped] config, Hash[String, Array[resource]] results, String where) -> Array[empty_select]
     def self.literal_body: (Hash[String, untyped] config, fhirpath fhirpath, String where) -> body
@@ -131,12 +132,23 @@ module FHIRStubServer
   end
 
   module Request
-    # What a request and a Pair must share to match; queries are { name => sorted values }.
-    type key = { method: String, path: String, query: Hash[String, Array[String]], form: Hash[String, Array[String]]? }
+    # What a request and a Pair must share to match; queries are { name => sorted values }, `json`
+    # a JSON object or array, or the body as it is when it is neither.
+    type key = { method: String, path: String, query: Hash[String, Array[String]], form: Hash[String, Array[String]]?,
+                 json: json? }
+    type json = Hash[String, untyped] | Array[untyped] | String
+
+    METHODS: Array[String]
+    JSON_WRITES: Array[String]
 
     def self.build: (raw_request raw) -> request
+    def self.pair: (Hash[String, untyped] config, String where) -> request
+    def self.pair_body: (untyped body, { method: String, path: String } request, String where) -> String
     def self.parse_query: (String query) -> Hash[String, Array[String]]
     def self.key: (request request) -> key
+    def self.match?: (key pair_key, key key) -> bool
+    def self.search?: (request | { method: String, path: String } request) -> bool
+    def self.json: (String? body) -> json?
   end
 
   module Paging

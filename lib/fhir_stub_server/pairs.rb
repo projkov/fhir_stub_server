@@ -67,9 +67,15 @@ module FHIRStubServer
       end
     end
 
-    # Query and form body differences in one Hash; a name differing in both keeps the form body's.
+    # Query and form body differences in one Hash, a name differing in both keeping the form
+    # body's, and a `body` entry for a differing JSON body.
     def self.differences(pair_key, request_key)
       diff(pair_key[:query], request_key[:query]).merge(diff(pair_key[:form].to_h, request_key[:form].to_h))
+                                                 .merge(json_diff(pair_key[:json], request_key[:json]))
+    end
+
+    def self.json_diff(expected, actual)
+      expected && expected != actual ? { 'body' => { expected:, actual: } } : {}
     end
 
     def self.diff(expected, actual)
@@ -80,21 +86,10 @@ module FHIRStubServer
     end
 
     def self.build(pair, fhirpath, where)
-      key = Request.key(request(pair['request'].to_h, where))
+      key = Request.key(Request.pair(pair['request'].to_h, where))
       response = pair['response'].to_h
       body, empty_selects = body(response, fhirpath, where)
       { key:, status: response.fetch('status', 200), body:, where:, empty_selects: }
-    end
-
-    # The Pair's request, normalized exactly like an incoming one.
-    def self.request(config, where)
-      path = config['path'].to_s
-      raise Error, "#{where}: the request needs a path starting with /" unless path.start_with?('/')
-
-      Request.build(
-        role: :fhir, method: config.fetch('method', 'GET').upcase, base_url: '', path:,
-        query: URI.encode_www_form(config['query'].to_h), body: URI.encode_www_form(config['body'].to_h)
-      )
     end
 
     # A lambda building the body of a matched request's page (from 1; nil past the last), and its
@@ -114,19 +109,22 @@ module FHIRStubServer
       results.filter_map { |name, found| { role: :fhir, pair: where, expression: config[name] } if found.empty? }
     end
 
-    # The fixed body of a `body_file` or `resource` response.
+    # The fixed body of a `body_file` or `resource` response, empty for a 204 without either.
     def self.literal_body(config, fhirpath, where)
       body = if config.key?('body_file')
                FHIRStubServer.read_file(config['body_file'])
-             else
+             elsif config.key?('resource')
                JSON.generate(one_resource(evaluate(config['resource'], fhirpath, where), where))
+             else
+               ''
              end
       ->(_request, page) { body if page[:number] == 1 }
     end
 
     def self.body_kind(config, where)
       kinds = BODY_KINDS & config.keys
-      raise Error, "#{where}: the response needs exactly one of #{BODY_KINDS.join(', ')}" unless kinds.one?
+      raise Error, "#{where}: the response needs exactly one of #{BODY_KINDS.join(', ')}" unless
+        kinds.one? || (kinds.empty? && config['status'] == 204)
 
       searchset_only = (%w[include page_size] & config.compact.keys).first unless kinds == ['select']
       raise Error, "#{where}: #{searchset_only} needs select" if searchset_only
@@ -156,7 +154,7 @@ module FHIRStubServer
       raise Error, "#{where}: resource must yield exactly one resource, got #{results.size}"
     end
 
-    private_class_method :with_dir, :candidates, :differences, :diff, :build, :request, :body, :empty_selects,
+    private_class_method :with_dir, :candidates, :differences, :diff, :json_diff, :build, :body, :empty_selects,
                          :literal_body, :body_kind, :evaluate, :resources_only, :one_resource
   end
 end

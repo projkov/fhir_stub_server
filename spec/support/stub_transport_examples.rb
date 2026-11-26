@@ -22,6 +22,13 @@ RSpec.shared_examples 'a Stub transport' do
     Net::HTTP.post(URI("#{base_url}#{path}"), form, 'Content-Type' => 'application/x-www-form-urlencoded')
   end
 
+  def send_request(method, path, body = nil)
+    uri = URI("#{base_url}#{path}")
+    Net::HTTP.start(uri.host, uri.port) do |http|
+      http.send_request(method, uri.request_uri, body, 'Content-Type' => 'application/fhir+json')
+    end
+  end
+
   # What Inferno's validator client sends: the file is named after the profile's last segment.
   def validate(profile, resource, context)
     file = { 'fileName' => "#{profile}.json", 'fileContent' => JSON.generate(resource), 'fileType' => 'json' }
@@ -178,6 +185,56 @@ RSpec.shared_examples 'a Stub transport' do
                                          nearest_pair: 'fhir.pairs[0]',
                                          differences: { 'family' => { expected: ['Smith'], actual: ['Müller'] } },
                                          suggested_request: }])
+    end
+  end
+
+  context 'with write Pairs' do
+    let(:patient) { { 'resourceType' => 'Patient', 'id' => 'p1', 'active' => true } }
+    let(:patch) do
+      [{ 'op' => 'replace', 'path' => '/active', 'value' => false }, { 'op' => 'remove', 'path' => '/name' }]
+    end
+    let(:p1) { { 'resource' => "entry.resource.ofType(Patient).where(id = 'p1')" } }
+    let(:pairs) do
+      [{ 'request' => { 'method' => 'put', 'path' => '/Patient/p1', 'body' => patient }, 'response' => p1 },
+       { 'request' => { 'method' => 'PATCH', 'path' => '/Patient/p1', 'body' => patch }, 'response' => p1 },
+       { 'request' => { 'method' => 'POST', 'path' => '/Patient' }, 'response' => { 'status' => 201, **p1 } },
+       { 'request' => { 'method' => 'DELETE', 'path' => '/Patient/p1' }, 'response' => { 'status' => 204 } }]
+    end
+
+    it 'matches a JSON body whatever its key order and whitespace' do
+      body = "{ \"active\": true,\n  \"id\": \"p1\", \"resourceType\": \"Patient\" }"
+
+      codes = [send_request('PUT', '/Patient/p1', body), send_request('PATCH', '/Patient/p1', JSON.generate(patch))]
+              .map(&:code)
+
+      expect(codes).to eq(%w[200 200])
+      expect(stub.served.map { |entry| entry[:answered_by] }).to eq(['fhir.pairs[0]', 'fhir.pairs[1]'])
+    end
+
+    it 'matches any body when the Pair declares none' do
+      expect(send_request('POST', '/Patient', 'not json').code).to eq('201')
+    end
+
+    it 'answers a 204 with an empty body' do
+      response = send_request('DELETE', '/Patient/p1')
+
+      expect([response.code, response.body.to_s]).to eq(['204', ''])
+    end
+
+    it 'misses on a different or unparseable body, reporting the body difference and suggesting the request' do
+      codes = [send_request('PATCH', '/Patient/p1', JSON.generate(patch.reverse)),
+               send_request('PUT', '/Patient/p1', '{"resourceType":')].map(&:code)
+
+      expect(codes).to eq(%w[404 404])
+      expect(stub.unmatched).to match(
+        [include(nearest_pair: 'fhir.pairs[1]', differences: { 'body' => { expected: patch, actual: patch.reverse } },
+                 suggested_request: { 'method' => 'PATCH', 'path' => '/Patient/p1', 'body' => patch.reverse }),
+         include(nearest_pair: 'fhir.pairs[0]',
+                 differences: { 'body' => { expected: patient, actual: '{"resourceType":' } },
+                 suggested_request: { 'method' => 'PUT', 'path' => '/Patient/p1' })]
+      )
+      expect(stub.unused_pairs.first).to eq(role: :fhir, pair: 'fhir.pairs[0]',
+                                            request: { 'method' => 'PUT', 'path' => '/Patient/p1', 'body' => patient })
     end
   end
 
