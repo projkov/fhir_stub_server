@@ -16,9 +16,16 @@ follow [Semantic Versioning](https://semver.org/).
   the parsed body.
 - A response with `status: 204` may have no body kind; it answers with an empty body and
   no `content-type`.
+- `dictionary: <path>`: a YAML mapping of names to strings whose values replace each
+  `${name}` in Pairs when the Stub is built, so a shared Pair file serves Scenarios with
+  different values. It applies in a FHIR Pair's `path`, `query` and form `body` values and
+  expressions, and a validator Pair's `profile` and `resource`, including Pairs spliced
+  through `from:`. An undefined `${name}` and an invalid dictionary are config errors;
+  reports show the substituted values.
 
 ### Changed
 
+- A `${...}` in those Pair strings, formerly literal, must name a dictionary entry.
 - A `body` on a `GET` or `DELETE` Pair, formerly ignored, is a config error.
 
 ## [0.1.0] - 2026-11-25

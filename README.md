@@ -53,6 +53,7 @@ validator:                       # optional
   pairs:
     - { profile: au-core-patient|1.0.0, resource: Patient/p1, issues: [] }
   expected_context: { sv: 4.0.1 }
+dictionary: dictionary.yml       # optional: values for ${name} in Pairs (see Dictionary)
 ```
 
 Quote dates and times (`birthdate: '1970-01-01'`): unquoted, YAML reads them as dates,
@@ -71,7 +72,8 @@ POST, PUT, PATCH or DELETE, a `body` on a GET or DELETE, a JSON `body` that is n
 array, a Pair response with zero (except for `status: 204`) or several body kinds,
 `include` or `page_size` without `select`, a `page_size` that is no positive integer, a
 `resource` expression yielding zero or several resources, an included file that is no
-list, an include cycle.
+list, an include cycle, a dictionary that is no mapping of valid names to strings, a
+`${name}` the dictionary does not define (or any `${name}` without a dictionary).
 
 ### Sources and Demo Data
 
@@ -162,8 +164,8 @@ that declares one.
 Pairs that several Scenarios share go in their own file. An entry `- from: <path>` in
 `fhir.pairs` or `validator.pairs` is replaced by the Pairs of that file, a YAML list that
 may itself have `from:` entries; paths in it (`from`, `body_file`) are relative to it.
-Only splicing: a Scenario that needs a different Pair writes its own, and the first
-matching Pair still answers.
+Only splicing: a Scenario that needs a different Pair writes its own, or attaches a
+[Dictionary](#dictionary) when only values differ; the first matching Pair still answers.
 
 ```yaml
 # scenario.yml
@@ -179,6 +181,48 @@ fhir:
 - request: { path: /Patient, query: { family: Smith } }
   response: { body_file: smith.json } # ../_shared/smith.json
 ```
+
+### Dictionary
+
+Pairs that several Scenarios share but with different values (a patient id, a family
+name, a code) are written once against named variables, and each Scenario attaches a
+Dictionary with its values. `dictionary: <path>` sits beside `fhir:` and `validator:` (in
+a `scenario.yml`, inside `server:`); the file is a YAML mapping of names
+(`[A-Za-z_][A-Za-z0-9_]*`) to strings, so quote numbers and dates:
+
+```yaml
+# scenario.yml
+server:
+  dictionary: dictionary.yml
+  fhir:
+    pairs:
+      - from: ../_shared/patient_reads.yml
+```
+
+```yaml
+# dictionary.yml
+patient_id: p1
+family: Smith
+```
+
+```yaml
+# ../_shared/patient_reads.yml
+- request: { path: "/Patient/${patient_id}" }
+  response: { resource: "Bundle.entry.resource.ofType(Patient).where(id = '${patient_id}')" }
+- request: { path: /Patient, query: { family: "${family}" } }
+  response: { select: "Bundle.entry.resource.ofType(Patient).where(name.family = '${family}')" }
+```
+
+- `${name}` is replaced, anywhere inside the string, in a FHIR Pair's `request.path`,
+  `query` values and form `body` values (`POST .../_search`) and in `select`, `include` and
+  `resource`; in a validator Pair's `profile` and `resource`. Nowhere else: not in query
+  names, a JSON `body`, `body_file`, `from` or `sources` paths, or numbers.
+- It is plain text, done once when the Stub is built: no escaping (a value with a `'`
+  breaks a FHIRPath string), and never a value from a request, so matching stays exact.
+- One Dictionary serves the Scenario's own Pairs and every Pair spliced through `from:`,
+  however deep. Unused entries are fine; a `${name}` it does not define is a config error,
+  as is any `${name}` in a config without `dictionary:`.
+- Reports show the substituted values; a Pair is still named by where it is written.
 
 ### Validator
 
@@ -324,6 +368,8 @@ An agent maintaining a kit's Scenarios works in a loop:
    When the nearest Pair is in a shared file (`nearest fhir.pairs[0] (../_shared/x.yml[7])`)
    and the change holds for every Scenario that includes it, edit the shared file;
    otherwise add the Pair to the Scenario, above the `from:` entry so that it answers first.
+   A suggested request holds the substituted values: pasted into a shared file, put its
+   `${name}`s back by hand.
 4. Rerun until the report is empty; check `stub.context_mismatches` too.
 5. Assert `expect(stub.unused_pairs).to be_empty, stub.unused_pairs_report`: each line
    names a Pair no request used and its request:
