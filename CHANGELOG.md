@@ -5,6 +5,8 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
 ### Added
 
 - Write Pairs: `request.method` takes `GET`, `POST`, `PUT`, `PATCH` or `DELETE` (any

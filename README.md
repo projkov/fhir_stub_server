@@ -21,7 +21,7 @@ adapters you use:
 
 ```ruby
 group :development, :test do
-  gem 'fhir_stub_server', '~> 0.1'
+  gem 'fhir_stub_server', '~> 0.2'
   gem 'webmock' # FHIRStubServer::WebMockAdapter
   gem 'puma'    # FHIRStubServer::HTTPServer and fhir-stub-server
   gem 'rackup'  # only for `bundle exec rackup`
