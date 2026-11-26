@@ -52,6 +52,7 @@ module FHIRStubServer
   autoload :HTTPServer, 'fhir_stub_server/http_server'
 end
 
+require_relative 'fhir_stub_server/dictionary'
 require_relative 'fhir_stub_server/fhir_role'
 require_relative 'fhir_stub_server/includes'
 require_relative 'fhir_stub_server/pairs'

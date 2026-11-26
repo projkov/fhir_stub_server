@@ -1,0 +1,2 @@
+- request: { path: /Patient, query: { family: "${family}" } }
+  response: { select: "entry.resource.ofType(Patient).where(name.family = '${family}')" }

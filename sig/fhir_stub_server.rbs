@@ -65,7 +65,7 @@ module FHIRStubServer
     @pairs: Array[Pairs::pair]
     @reads: Hash[String, resource]
 
-    def initialize: (Hash[String, untyped] config, Hash[String, resource] demo_data, String model, String dir) -> void
+    def initialize: (Hash[String, untyped] config, Hash[String, resource] demo_data, String model, String dir, Dictionary dictionary) -> void
     def answer: (request request) -> answer
     def pairs: () -> Array[unused_pair]
     def empty_selects: () -> Array[empty_select]
@@ -89,7 +89,7 @@ module FHIRStubServer
 
     BODY_KINDS: Array[String]
 
-    def self.load: (Array[Hash[String, untyped]] pairs, fhirpath fhirpath, String dir) -> Array[pair]
+    def self.load: (Array[Includes::spliced] spliced, fhirpath fhirpath, Dictionary dictionary) -> Array[pair]
     def self.fhirpath: (Hash[String, resource] demo_data, String model) -> fhirpath
     def self.with_dir: (Hash[String, untyped] pair, String dir) -> Hash[String, untyped]
     def self.answer: (Array[pair] pairs, request request) -> [String, response]?
@@ -106,6 +106,31 @@ module FHIRStubServer
     def self.evaluate: (String? expression, fhirpath fhirpath, String where) -> Array[resource]
     def self.resources_only: (Array[untyped] results, String label) -> Array[resource]
     def self.one_resource: (Array[resource] results, String where) -> resource
+  end
+
+  class Dictionary
+    # Substitutes the Dictionary in a value's strings, an Array's items and a Hash's values.
+    type resolver = ^(untyped value) -> untyped
+
+    NAME: Regexp
+    VARIABLE: Regexp
+    EXPRESSIONS: Array[String]
+
+    @values: Hash[String, String]
+
+    def self.load: (String? path, String dir) -> Dictionary
+    def self.values: (String file) -> Hash[String, String]
+    def self.check: (String file, untyped name, untyped value) -> void
+    def self.fhir_pair: (Hash[String, untyped] pair, resolver resolve) -> Hash[String, untyped]
+    def self.resolved: (Hash[String, untyped] config, Array[String] keys, resolver resolve) -> Hash[String, untyped]
+    def initialize: (Hash[String, String] values) -> void
+    def fhir_pair: (Hash[String, untyped] pair, String where) -> Hash[String, untyped]
+    def validator_key: (Hash[String, untyped] pair, String where) -> Validator::key
+
+    private
+
+    def resolver: (String where) -> resolver
+    def substitute: (String string, String where) -> String
   end
 
   class Includes
@@ -213,7 +238,7 @@ module FHIRStubServer
     @pairs: Array[[key, Array[untyped], String]]
     @expected_context: Hash[String, untyped]
 
-    def initialize: (Hash[String, untyped] config, String dir) -> void
+    def initialize: (Hash[String, untyped] config, String dir, Dictionary dictionary) -> void
     def answer: (request request) -> answer
     def pairs: () -> Array[unused_pair]
     def self.call: (request request) -> [key, Hash[String, untyped]]?

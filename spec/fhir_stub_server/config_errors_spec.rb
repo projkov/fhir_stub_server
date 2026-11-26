@@ -104,6 +104,30 @@ RSpec.describe FHIRStubServer::Stub, '.new' do
       { 'fhir' => { 'pairs' => [{ 'from' => fixture('shared/cycle.yml') }] } },
       %r{\Afhir\.pairs\[0\] \(.*shared/cycle\.yml\[0\]\): including .*shared/cycle\.yml again is a cycle\z}
     ],
+    'a variable in an included Pair without a dictionary' => [
+      { 'fhir' => { 'pairs' => [{ 'from' => fixture('shared/variables.yml') }] } },
+      %r{\Afhir\.pairs\[0\] \(spec/fixtures/shared/variables\.yml\[0\]\): undefined variable patient_id\z}
+    ],
+    'a variable the dictionary does not define' => [
+      { 'dictionary' => fixture('dictionary.yml'),
+        'validator' => { 'pairs' => [{ 'profile' => '${profile}', 'resource' => 'Patient/${patient}' }] } },
+      /\Avalidator\.pairs\[0\]: undefined variable patient\z/
+    ],
+    'a dictionary that is no mapping' => [
+      { 'dictionary' => fixture('shared/validator.yml') },
+      %r{\A.*/shared/validator\.yml: the dictionary must be a mapping of names to strings\z}
+    ],
+    'a dictionary name that is no valid variable name' => [
+      { 'dictionary' => fixture('dictionaries/bad_name.yml') },
+      %r{\A.*/dictionaries/bad_name\.yml: patient-id is no valid variable name\z}
+    ],
+    'a dictionary value that is no string' => [
+      { 'dictionary' => fixture('dictionaries/number.yml') },
+      %r{\A.*/dictionaries/number\.yml: patient_id must be a string\z}
+    ],
+    'a missing dictionary file' => [
+      { 'dictionary' => '/missing/dictionary.yml' }, %r{\ACannot read /missing/dictionary\.yml}
+    ],
     'an expression fhirpath-rb fails on' => [
       { 'fhir' => { 'sources' => [{ 'package' => absent_birth_date }],
                     'pairs' => [{ 'request' => { 'path' => '/Patient' },

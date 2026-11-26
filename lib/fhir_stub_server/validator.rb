@@ -7,12 +7,13 @@ module FHIRStubServer
   #   expected_context: { sv: 4.0.1 }
   #
   # A call is matched on the profile (`filesToValidate[0].fileName` without `.json`) and the
-  # `Type/id` of the file's content; `sessionId` is ignored. `pairs` may include files (see Includes).
+  # `Type/id` of the file's content; `sessionId` is ignored. `pairs` may include files (see Includes),
+  # each with the Dictionary substituted (see Dictionary#validator_key).
   # @api private
   class Validator
-    def initialize(config, dir)
+    def initialize(config, dir, dictionary)
       @pairs = Includes.splice(config['pairs'].to_a, 'validator.pairs', dir).map do |pair, _dir, where|
-        [pair.values_at('profile', 'resource'), pair['issues'].to_a, where]
+        [dictionary.validator_key(pair, where), pair['issues'].to_a, where]
       end
       @expected_context = config['expected_context'].to_h
     end

@@ -19,15 +19,15 @@ module FHIRStubServer
   # does `body` for `POST .../_search`, the form body. On other POSTs, PUT and PATCH, `body` is a
   # JSON object or array, compared with the parsed request body (key order and whitespace
   # ignored); without it any body matches. GET and DELETE take no `body`.
-  # When several Pairs match a request, the first one answers. An entry `{ from: <path> }` is
-  # replaced by the Pairs of that file (see Includes).
+  # When several Pairs match a request, the first one answers. They come spliced (see Includes),
+  # each with the Dictionary substituted (see Dictionary#fhir_pair).
   # @api private
   module Pairs
     BODY_KINDS = %w[body_file select resource].freeze
 
-    def self.load(pairs, fhirpath, dir)
-      Includes.splice(pairs, 'fhir.pairs', dir).map do |pair, pair_dir, where|
-        build(with_dir(pair, pair_dir), fhirpath, where)
+    def self.load(spliced, fhirpath, dictionary)
+      spliced.map do |pair, dir, where|
+        build(with_dir(dictionary.fhir_pair(pair, where), dir), fhirpath, where)
       end
     end
 

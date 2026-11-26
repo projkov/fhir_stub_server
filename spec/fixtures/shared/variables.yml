@@ -1,0 +1,4 @@
+# Pairs written against the names of the including config's Dictionary.
+- request: { path: "/Patient/${patient_id}", query: { _elements: "${elements}" } }
+  response: { status: 404, body_file: ../patient_gone.json }
+- from: nested/variables.yml

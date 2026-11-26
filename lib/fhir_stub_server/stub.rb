@@ -8,9 +8,11 @@ module FHIRStubServer
     def initialize(config, dir: '.')
       fhir = config['fhir'].to_h
       demo_data, served, model = Sources.load(fhir['sources'].to_a, dir)
+      dictionary = Dictionary.load(config['dictionary'], dir)
       validator = config['validator']
       @validator = validator ? true : false
-      @roles = { fhir: FHIRRole.new(fhir, demo_data, model, dir), validator: Validator.new(validator.to_h, dir) }
+      @roles = { fhir: FHIRRole.new(fhir, demo_data, model, dir, dictionary),
+                 validator: Validator.new(validator.to_h, dir, dictionary) }
       @reports = { served:, unmatched: [], context_mismatches: [] }
     end
 

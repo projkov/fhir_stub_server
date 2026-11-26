@@ -7,9 +7,10 @@ RSpec.shared_examples 'a Stub transport' do
   let(:sources) { [{ 'bundle' => fixture('demo.json') }] }
   let(:pairs) { [] }
   let(:validator) { nil }
+  let(:dictionary) { nil }
   let(:stub) do
-    FHIRStubServer::Stub.new({ 'fhir' => { 'sources' => sources, 'pairs' => pairs }, 'validator' => validator }.compact,
-                             dir: fixture('.'))
+    FHIRStubServer::Stub.new({ 'fhir' => { 'sources' => sources, 'pairs' => pairs }, 'validator' => validator,
+                               'dictionary' => dictionary }.compact, dir: fixture('.'))
   end
   let(:base_urls) { serve(stub) }
   let(:base_url) { base_urls[:fhir] }
@@ -144,6 +145,35 @@ RSpec.shared_examples 'a Stub transport' do
         "Unused #{observations}: {\"path\":\"/Observation\",\"query\":{\"patient\":\"p1\"}}\n" \
         'Unused validator.pairs[0] (shared/validator.yml[0]): {"profile":"example-patient","resource":"Patient/p1"}'
       )
+    end
+  end
+
+  context 'with a dictionary and Pairs that use its variables, from shared files two levels deep' do
+    let(:dictionary) { 'dictionary.yml' }
+    let(:pairs) { [{ 'from' => 'shared/variables.yml' }] }
+    let(:validator) do
+      { 'pairs' => [{ 'profile' => '${profile}', 'resource' => 'Patient/${patient_id}', 'issues' => [] }] }
+    end
+
+    it 'answers with the values substituted in paths, query values, select expressions and validator Pairs' do
+      expect(get('/Patient/p1?_elements=name').body).to eq(File.read(fixture('patient_gone.json')))
+      bundle = JSON.parse(get('/Patient?family=Smith').body)
+      validate('example-patient', { 'resourceType' => 'Patient', 'id' => 'p1' }, 'cliContext' => {})
+
+      expect(bundle['entry'].map { |entry| entry.dig('resource', 'id') }).to eq(['p1'])
+      expect(stub.served.map { |entry| entry[:answered_by] }).to eq(
+        ['fhir.pairs[0] (shared/variables.yml[0])',
+         'fhir.pairs[0] (shared/variables.yml[1] > shared/nested/variables.yml[0])', 'validator.pairs[0]']
+      )
+    end
+
+    it 'reports misses and unused Pairs with the substituted values' do
+      get('/Patient?family=Smtih')
+
+      differences = { 'family' => { expected: ['Smith'], actual: ['Smtih'] } }
+      expect(stub.unmatched).to match([include(differences:)])
+      expect(stub.unused_pairs.first).to include(request: { 'path' => '/Patient/p1',
+                                                            'query' => { '_elements' => 'name' } })
     end
   end
 

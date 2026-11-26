@@ -1,0 +1,5 @@
+# Attached with `dictionary: dictionary.yml`; shared/variables.yml writes its names as `${name}`.
+patient_id: p1
+elements: name
+family: Smith
+profile: example-patient

@@ -5,8 +5,9 @@ module FHIRStubServer
   # [answered_by, response, { report name => entries }].
   # @api private
   class FHIRRole
-    def initialize(config, demo_data, model, dir)
-      @pairs = Pairs.load(config['pairs'].to_a, Pairs.fhirpath(demo_data, model), dir)
+    def initialize(config, demo_data, model, dir, dictionary)
+      spliced = Includes.splice(config['pairs'].to_a, 'fhir.pairs', dir)
+      @pairs = Pairs.load(spliced, Pairs.fhirpath(demo_data, model), dictionary)
       @reads = Sources.reads(demo_data)
     end
 
