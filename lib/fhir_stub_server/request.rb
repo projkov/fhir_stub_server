@@ -52,8 +52,7 @@ module FHIRStubServer
       URI.decode_www_form(ascii).group_by(&:first).sort.to_h { |name, pairs| [name, pairs.map(&:last).sort] }
     end
 
-    # Method, path, query, the form body for `POST .../_search` and the JSON body for other
-    # writes (nil when they do not apply).
+    # Method, path, query, and the form body of `POST .../_search` or the JSON body of another write.
     def self.key(request)
       method = request[:method]
       body = request[:body]

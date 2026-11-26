@@ -66,8 +66,9 @@ directory).
 Every config error raises a `FHIRStubServer::Error` naming the file or Pair when the
 Stub is built, never when a request arrives: a missing or invalid file, the same
 `Type/id` twice in one package, packages that share no FHIR version fhirpath-rb has a
-model for, several server CapabilityStatements, a Pair response
-with zero or several body kinds, `include` or `page_size` without `select`, a `page_size`
+model for, several server CapabilityStatements, a Pair request method other than GET,
+POST, PUT, PATCH or DELETE, a `body` on a GET or DELETE, a JSON `body` that is no object or
+array, a Pair response with zero (but for `status: 204`) or several body kinds, `include` or `page_size` without `select`, a `page_size`
 that is no positive integer, a `resource` expression yielding zero or several resources, an
 included file that is no list, an include cycle.
 
@@ -86,13 +87,16 @@ included file that is no list, an include cycle.
 
 A Pair is one expected request and the response configured for it.
 
-- `request`: `path` (relative to the FHIR base, required), `method` (default `GET`),
-  `query` and, for `POST .../_search`, the form `body`: each maps a name to a value or a
-  list of values.
+- `request`: `path` (relative to the FHIR base, required), `method` (`GET`, `POST`, `PUT`,
+  `PATCH` or `DELETE`, in any case; default `GET`), `query` and `body`. `query` and, for
+  `POST .../_search`, the form `body` each map a name to a value or a list of values. On
+  other POSTs, `PUT` and `PATCH`, `body` is the expected JSON body (see
+  [Writes](#writes)); GET and DELETE take none.
 - A request matches on method, path and its query (and form body) as an unordered
-  multiset of exact values. Headers are ignored. The first matching Pair answers, and a
+  multiset of exact values. Headers, `Content-Type` included, are ignored. The first matching Pair answers, and a
   Pair wins over a Demo Data read, so it can force a 404 or an altered resource.
-- `response`: optional `status` (default 200) and exactly one body kind:
+- `response`: optional `status` (default 200) and exactly one body kind, or none for
+  `status: 204`, which answers with an empty body:
   - `body_file`: a file sent as it is;
   - `resource: <fhirpath>`: the one resource the expression yields;
   - `select: <fhirpath>`, optionally with `include: <fhirpath>`: a `searchset` Bundle of
@@ -126,8 +130,31 @@ A Pair is one expected request and the response configured for it.
       select: "Bundle.entry.resource.ofType(Patient).where(name.family = 'Nobody')"
       expect_empty: true
   ```
-- Writes (`POST`, `PUT`) get their Pair's response and never change Demo Data.
+- Writes get their Pair's response and never change Demo Data (see [Writes](#writes)).
 - Any other request gets a 404 OperationOutcome and is recorded in `#unmatched`.
+
+#### Writes
+
+On `POST` (but `POST .../_search`), `PUT` and `PATCH`, a Pair's `body` is the JSON object
+or array the request must send, written inline: a resource, or a JSON Patch array. It is
+compared with the parsed request body: key order and whitespace are ignored, array order
+counts. A Pair without `body` matches any body. A body that is not JSON, or empty, misses a
+Pair that declares one.
+
+```yaml
+- request:
+    method: PUT
+    path: /Patient/p1
+    body: { resourceType: Patient, id: p1, active: true }
+  response: { body_file: patient_p1_updated.json }
+- request:
+    method: PATCH
+    path: /Patient/p1
+    body: [{ op: replace, path: /active, value: false }]
+  response: { resource: "Bundle.entry.resource.ofType(Patient).where(id = 'p1')" }
+- request: { method: DELETE, path: /Patient/p1 }
+  response: { status: 204 }
+```
 
 Pairs that several Scenarios share go in their own file. An entry `- from: <path>` in
 `fhir.pairs` or `validator.pairs` is replaced by the Pairs of that file, a YAML list that
@@ -185,10 +212,12 @@ After a run, each in arrival order and the same for both adapters:
 - `stub.unmatched`: `{ request:, nearest_pair:, differences:, suggested_request: }` per
   unanswered request. `nearest_pair` names the Pair with the same method and path and the
   fewest differing parameters; `differences` maps each differing parameter to
-  `{ expected:, actual: }` (`nil` for a parameter missing on one side).
-  `suggested_request` is what to paste as the `request` of a new Pair, as the config
-  writes it: `method` only when not GET, `path`, `query` and, for `POST .../_search`, the
-  form `body`, a single value unwrapped. For a validator miss it is `{ 'profile' =>,
+  `{ expected:, actual: }` (`nil` for a parameter missing on one side), and a differing
+  JSON body to one `body` entry, `actual` the parsed request body (the raw string when it
+  is not JSON). `suggested_request` is what to paste as the `request` of a new Pair, as
+  the config writes it: `method` only when not GET, `path`, `query` and `body`: the form
+  body of `POST .../_search`, a single value unwrapped, or the parsed JSON body of another
+  write (left out when it is not a JSON object or array). For a validator miss it is `{ 'profile' =>,
   'resource' => }` (add `issues`), or `nil` when the request is no validate call.
 - `stub.context_mismatches`: `{ request:, key:, expected:, actual: }`.
 - `stub.served`: `{ kind: :load, skipped:, reason: }` for each skipped resource, then

@@ -5,6 +5,21 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Write Pairs: `request.method` takes `GET`, `POST`, `PUT`, `PATCH` or `DELETE` (any
+  case); another method is a config error. On `POST` (but `POST .../_search`), `PUT` and
+  `PATCH`, `request.body` is the expected JSON body, an object or array (a JSON Patch
+  included), compared with the parsed request body regardless of key order and
+  whitespace. A write Pair without `body` still matches any body. A differing body is one
+  `body` entry in a miss's `differences`, and `suggested_request` and `unused_pairs` carry
+  the parsed body.
+- A response with `status: 204` may have no body kind; it answers with an empty body.
+
+### Changed
+
+- A `body` on a `GET` or `DELETE` Pair, formerly ignored, is a config error.
+
 ## [0.1.0] - 2026-11-25
 
 Initial release.
