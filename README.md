@@ -139,10 +139,10 @@ A Pair is one expected request and the response configured for it.
 
 On `POST` (except `POST .../_search`), `PUT` and `PATCH`, a Pair's `body` is the JSON
 object or array the request must send, written inline: a resource, or a JSON Patch array.
-Quote its dates (`birthDate: '1970-01-01'`), as everywhere in the config. It is
-compared with the parsed request body: key order and whitespace are ignored, array order
-counts. A Pair without `body` matches any body. A body that is not JSON, or empty, misses a
-Pair that declares one.
+Quote its dates (`birthDate: '1970-01-01'`), as everywhere in the config. It is compared
+with the parsed request body: key order and whitespace are ignored, array order counts. A
+Pair without `body` matches any body. A body that is not JSON, or empty, misses a Pair
+that declares one.
 
 ```yaml
 - request:
