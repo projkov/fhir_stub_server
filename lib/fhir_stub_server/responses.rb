@@ -10,8 +10,9 @@ module FHIRStubServer
       raw(status, JSON.generate(resource))
     end
 
+    # Rack::Lint (run by `rackup` in development) rejects a content-type on a 204.
     def self.raw(status, body)
-      [status, { 'content-type' => CONTENT_TYPE }, body]
+      [status, status == 204 ? {} : { 'content-type' => CONTENT_TYPE }, body]
     end
 
     # The JSON body of a searchset's `page` (see Paging), nil past the last one. `total` counts the

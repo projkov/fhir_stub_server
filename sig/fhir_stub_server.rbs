@@ -85,7 +85,7 @@ module FHIRStubServer
     # Evaluates a FHIRPath expression over all Demo Data.
     type fhirpath = ^(String expression) -> Array[untyped]
     # Query and form values, or (for `body`) JSON bodies.
-    type differences = Hash[String, { expected: untyped, actual: untyped }]
+    type differences = Hash[String, { expected: Array[String] | Request::json | nil, actual: Array[String] | Request::json | nil }]
 
     BODY_KINDS: Array[String]
 

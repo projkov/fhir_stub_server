@@ -215,24 +215,28 @@ RSpec.shared_examples 'a Stub transport' do
       expect(send_request('POST', '/Patient', 'not json').code).to eq('201')
     end
 
-    it 'answers a 204 with an empty body' do
+    it 'answers a 204 with an empty body and no content-type' do
       response = send_request('DELETE', '/Patient/p1')
 
-      expect([response.code, response.body.to_s]).to eq(['204', ''])
+      expect([response.code, response.body.to_s, response['Content-Type']]).to eq(['204', '', nil])
     end
 
-    it 'misses on a different or unparseable body, reporting the body difference and suggesting the request' do
+    it 'misses on a different, unparseable or empty body, reporting the body difference and suggesting the request' do
       codes = [send_request('PATCH', '/Patient/p1', JSON.generate(patch.reverse)),
-               send_request('PUT', '/Patient/p1', '{"resourceType":')].map(&:code)
+               send_request('PUT', '/Patient/p1', '{"resourceType":'), send_request('PUT', '/Patient/p1', ''),
+               send_request('PUT', '/Patient/p1', "{\"id\":\"\xFF\"}".b)].map(&:code)
 
-      expect(codes).to eq(%w[404 404])
+      expect(codes).to eq(%w[404 404 404 404])
       expect(stub.unmatched).to match(
         [include(nearest_pair: 'fhir.pairs[1]', differences: { 'body' => { expected: patch, actual: patch.reverse } },
                  suggested_request: { 'method' => 'PATCH', 'path' => '/Patient/p1', 'body' => patch.reverse }),
          include(nearest_pair: 'fhir.pairs[0]',
                  differences: { 'body' => { expected: patient, actual: '{"resourceType":' } },
-                 suggested_request: { 'method' => 'PUT', 'path' => '/Patient/p1' })]
+                 suggested_request: { 'method' => 'PUT', 'path' => '/Patient/p1' }),
+         include(differences: { 'body' => { expected: patient, actual: nil } }),
+         include(suggested_request: { 'method' => 'PUT', 'path' => '/Patient/p1' })]
       )
+      expect(stub.unmatched_report.lines.size).to eq(4)
       expect(stub.unused_pairs.first).to eq(role: :fhir, pair: 'fhir.pairs[0]',
                                             request: { 'method' => 'PUT', 'path' => '/Patient/p1', 'body' => patient })
     end

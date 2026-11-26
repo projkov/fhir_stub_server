@@ -68,9 +68,11 @@ module FHIRStubServer
 
     def self.search?(request) = request[:method] == 'POST' && request[:path].end_with?('/_search')
 
-    # The body parsed when it is a JSON object or array, else the body as it is.
+    # The body parsed when it is a JSON object or array, else the body as it is. Invalid UTF-8
+    # is not parsed: JSON.parse accepts it, JSON.generate (in the reports) raises on it.
     def self.json(body)
-      parsed = JSON.parse(body.to_s)
+      text = body.to_s
+      parsed = JSON.parse(text) if text.valid_encoding?
       parsed.is_a?(Hash) || parsed.is_a?(Array) ? parsed : body
     rescue JSON::ParserError
       body

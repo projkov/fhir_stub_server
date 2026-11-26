@@ -68,9 +68,10 @@ Stub is built, never when a request arrives: a missing or invalid file, the same
 `Type/id` twice in one package, packages that share no FHIR version fhirpath-rb has a
 model for, several server CapabilityStatements, a Pair request method other than GET,
 POST, PUT, PATCH or DELETE, a `body` on a GET or DELETE, a JSON `body` that is no object or
-array, a Pair response with zero (but for `status: 204`) or several body kinds, `include` or `page_size` without `select`, a `page_size`
-that is no positive integer, a `resource` expression yielding zero or several resources, an
-included file that is no list, an include cycle.
+array, a Pair response with zero (except for `status: 204`) or several body kinds,
+`include` or `page_size` without `select`, a `page_size` that is no positive integer, a
+`resource` expression yielding zero or several resources, an included file that is no
+list, an include cycle.
 
 ### Sources and Demo Data
 
@@ -93,10 +94,11 @@ A Pair is one expected request and the response configured for it.
   other POSTs, `PUT` and `PATCH`, `body` is the expected JSON body (see
   [Writes](#writes)); GET and DELETE take none.
 - A request matches on method, path and its query (and form body) as an unordered
-  multiset of exact values. Headers, `Content-Type` included, are ignored. The first matching Pair answers, and a
-  Pair wins over a Demo Data read, so it can force a 404 or an altered resource.
+  multiset of exact values. Headers, `Content-Type` included, are ignored. The first
+  matching Pair answers, and a Pair wins over a Demo Data read, so it can force a 404 or
+  an altered resource.
 - `response`: optional `status` (default 200) and exactly one body kind, or none for
-  `status: 204`, which answers with an empty body:
+  `status: 204`, which answers with an empty body and no `content-type`:
   - `body_file`: a file sent as it is;
   - `resource: <fhirpath>`: the one resource the expression yields;
   - `select: <fhirpath>`, optionally with `include: <fhirpath>`: a `searchset` Bundle of
@@ -135,8 +137,9 @@ A Pair is one expected request and the response configured for it.
 
 #### Writes
 
-On `POST` (but `POST .../_search`), `PUT` and `PATCH`, a Pair's `body` is the JSON object
-or array the request must send, written inline: a resource, or a JSON Patch array. It is
+On `POST` (except `POST .../_search`), `PUT` and `PATCH`, a Pair's `body` is the JSON
+object or array the request must send, written inline: a resource, or a JSON Patch array.
+Quote its dates (`birthDate: '1970-01-01'`), as everywhere in the config. It is
 compared with the parsed request body: key order and whitespace are ignored, array order
 counts. A Pair without `body` matches any body. A body that is not JSON, or empty, misses a
 Pair that declares one.
@@ -214,11 +217,12 @@ After a run, each in arrival order and the same for both adapters:
   fewest differing parameters; `differences` maps each differing parameter to
   `{ expected:, actual: }` (`nil` for a parameter missing on one side), and a differing
   JSON body to one `body` entry, `actual` the parsed request body (the raw string when it
-  is not JSON). `suggested_request` is what to paste as the `request` of a new Pair, as
-  the config writes it: `method` only when not GET, `path`, `query` and `body`: the form
-  body of `POST .../_search`, a single value unwrapped, or the parsed JSON body of another
-  write (left out when it is not a JSON object or array). For a validator miss it is `{ 'profile' =>,
-  'resource' => }` (add `issues`), or `nil` when the request is no validate call.
+  is not JSON, `nil` when it is empty). `suggested_request` is what to paste as the
+  `request` of a new Pair, as the config writes it: `method` only when not GET, `path`,
+  `query` and `body`: the form body of `POST .../_search`, a single value unwrapped, or the
+  parsed JSON body of another write (left out when it is not a JSON object or array). For
+  a validator miss it is `{ 'profile' =>, 'resource' => }` (add `issues`), or `nil` when
+  the request is no validate call.
 - `stub.context_mismatches`: `{ request:, key:, expected:, actual: }`.
 - `stub.served`: `{ kind: :load, skipped:, reason: }` for each skipped resource, then
   `{ kind: :request, request:, answered_by: }` per request, `answered_by` naming the
