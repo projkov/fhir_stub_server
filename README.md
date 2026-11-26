@@ -195,6 +195,8 @@ a `scenario.yml`, inside `server:`); the file is a YAML mapping of names
 server:
   dictionary: dictionary.yml
   fhir:
+    sources:
+      - bundle: patients.json      # holds Patient p1, family Smith
     pairs:
       - from: ../_shared/patient_reads.yml
 ```
